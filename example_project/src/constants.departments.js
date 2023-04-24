@@ -1,5 +1,5 @@
 //@map:MyTinyApp.Constants.Departments::
-// constants.js
+// constants.departments.js
 
 'HR' = 'Human Resources'
 'ENG' = 'Engineering'

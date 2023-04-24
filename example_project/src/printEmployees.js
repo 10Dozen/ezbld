@@ -1,5 +1,5 @@
 //@wrap:function:MyTinyApp.printEmployees:
-// Logger.js
+// printEmployees.js
 
 this.log.log('Printing employees');
 node = document.getElementById('container')

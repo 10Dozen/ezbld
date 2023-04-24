@@ -1,4 +1,4 @@
-// Version: 0.1.0.1
+// Version: 0.1.0.3
 // Build by ezbld tool =)
 
 // Logger defined before use
@@ -31,7 +31,7 @@ const MyTinyApp = new (function () {
 })()
 
 {
-    // constants.js
+    // constants.departments.js
     
     MyTinyApp.Constants.Departments['HR'] = 'Human Resources';
     MyTinyApp.Constants.Departments['ENG'] = 'Engineering';
@@ -60,7 +60,7 @@ MyTinyApp.addEmployee = function (name, department, salary) {
 }
 
 MyTinyApp.printEmployees = function () {
-    // Logger.js
+    // printEmployees.js
     
     this.log.log('Printing employees');
     node = document.getElementById('container')
@@ -81,3 +81,4 @@ document.addEventListener("DOMContentLoaded", function(event) {
 	MyTinyApp.addEmployee('Alexander Anderson', MyTinyApp.Constants.Departments.HR, 2250);
 	MyTinyApp.printEmployees()
 });
+
