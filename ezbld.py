@@ -50,7 +50,7 @@ def save_build_version(version_track_filename, version: int) -> None:
     with open(version_track_filename, 'w', encoding='utf-8') as bvf:
         bvf.write(str(version))
 
-def process_file(filename: str, processor_name: str|None) -> str:
+def process_file(filename: str, processor_name) -> str:
     '''Reads source file and checks for processor directives.
        If needed - content passed to processor for modification,
        otherwise returns file content
@@ -61,41 +61,48 @@ def process_file(filename: str, processor_name: str|None) -> str:
     with open(filename, 'r', encoding='utf-8') as src_file:
         if not processor_name or not processors.get(processor_name):
             print('\tprocess_file:> No processor name defined or'
-                  f' processor for {processor_name} not found. Copy as is.')
+                  ' processor for %s not found. Copy as is.' % (processor_name))
             return src_file.read()
 
         # Look for processor instructions in first lines of the file.
         # If any non-empty line without instruction met
         # stop checking and consider file as a simple one
         defines = get_processor_definitions(processor_name)
-        instruction = None
-        search_for_instruction = True
-        processor = None
+        instructions = []
 
-        line = src_file.readline()
-        while line and search_for_instruction:
+        content = src_file.readlines()
+        contentStartsAt = 0
+        for i, line in enumerate(content):
             if not line:
-                line = src_file.readline()
                 continue
-
-            search_for_instruction = False
-            if [line for define in defines if line.lower().startswith(define.lower())]:
-                instruction = line
-
-        if not instruction:
+            
+            # If instruction line found - add to list
+            # if line is not an instruction - stop futher search
+            if [line for define in defines if line.lower().startswith(define)]:
+                instructions.append(line)
+            else:
+                contentStartsAt = i
+                break
+                
+        if not instructions:
             print('\tprocess_file:>  There is no process instruction found. Copy as is.')
-            src_file.seek(0)
-            return src_file.read()
+            return ''.join(content)
 
         # Select and apply processor by generating apropriate function
-        print(f'\tprocess_file:> Found instruction: {instruction.strip()}')
-        processor = get_processor(processor_name, instruction)
-        if not processor:
-            print(f'\n[ERROR] Failed to define processor function for instruction {instruction}')
-            return ''
+        print('\tprocess_file:> Found %s instruction(s)' % len(instructions))
+        
+        content = content[contentStartsAt:]
+        processors_count = 0
+        for instruction in instructions:
+            processor = get_processor(processor_name, instruction)
+            if not processor:
+                print('\n[ERROR] Failed to define processor function for instruction %s' % instruction)
+            else:
+                print('\t\tRunning processor %s' % processor.__name__)
+                processors_count +=1 
+                content = processor(content)
 
-        print(f'\tprocess_file:> Using processor: {processor}')
-        content = processor(src_file.readlines())
+        print('\tprocess_file:> Content was processed with %s processors' % processors_count)
 
     return ''.join(content)
 
@@ -115,7 +122,7 @@ def build_artifact(project_path: str,
         path_prefix = settings['Paths']['projectPath']
     else:
         path_prefix = project_path
-    print(f'Path prefix: {path_prefix}')
+    print('Path prefix: %s' % path_prefix)
 
     source_dir = ''
     if build_config.get('source_dir'):
@@ -131,7 +138,7 @@ def build_artifact(project_path: str,
     target_dir = os.path.join(path_prefix,
                               settings['Paths']['releaseTo' if is_release else 'buildTo'] )
 
-    print(f'Source: {source_dir}')
+    print('Source: %s' % source_dir)
 
     if not os.path.exists(source_dir):
         print('\n[ERROR] Source directory not exists!')
@@ -145,9 +152,9 @@ def build_artifact(project_path: str,
         target_dir = os.path.join(target_dir, build_config['target_dir'])
         if not os.path.exists(target_dir):
             os.makedirs(target_dir)
-            print(f'WARNING: Directories has been generated for path {target_dir}')
+            print('WARNING: Directories has been generated for path %s' % target_dir)
 
-    print(f'Target: {target_dir}')
+    print('Target: %s' % target_dir)
 
     source_files = []
     missing_source_files = []
@@ -159,7 +166,7 @@ def build_artifact(project_path: str,
 
         src_file_path = os.path.join(source_dir, src_filename)
         if not os.path.exists(src_file_path):
-            print(f'\n[ERROR] Source file {src_file_path} not exists')
+            print('\n[ERROR] Source file %s not exists' % src_file_path)
             missing_source_files.append(src_file_path)
         else:
             source_files.append(src_file_path)
@@ -169,14 +176,14 @@ def build_artifact(project_path: str,
 
     # Building
     artifact_filename = build_config.name
-    artifact_full_filename = artifact_filename if is_release else f'{artifact_filename}-{version}'
+    artifact_full_filename = artifact_filename if is_release else '%s-%s' % (artifact_filename,version)
     artifact_full_path = os.path.join(target_dir, artifact_full_filename)
 
     processor_name = build_config.get('processor')
 
     source_size = len(source_files)
     with open(artifact_full_path, 'w', encoding='utf-8') as artifact:
-        artifact.write(f'// Version: {version}\n')
+        artifact.write('// Version: %s\n' % (version))
         artifact.write('// Build by ezbld tool =)\n\n')
 
         for i, src_filename in enumerate(source_files):
@@ -186,21 +193,20 @@ def build_artifact(project_path: str,
                 continue
 
             # File case
-            print(f'\n\tFile {i+1}/{source_size} <{src_filename}>')
+            print('\n\tFile %s/%s <%s>' % (i+1, source_size, src_filename))
             processed_content = process_file(src_filename, processor_name)
 
             artifact.write(processed_content)
             artifact.write('\n')
 
-            print_progress_bar(i+1, source_size, size=50,
-                               label='\tArtifact build progress', bar_char='*')
+            print_progress_bar(i+1, source_size, label='\tArtifact build progress', bar_char='*')
 
     return 0
 
 def load_processors(processors_settings):
     '''Loads line processors from settings file'''
     for processor_name, module_name in processors_settings.items():
-        print(f'Loading processor [{processor_name}]...')
+        print('Loading processor [%s]...' % processor_name)
         plugin = import_module(module_name)
         plugin_processor = plugin.get()
         processors[processor_name] = plugin_processor
@@ -216,7 +222,7 @@ def main(settings_file) -> int:
 
     print(settings_file)
     if not os.path.exists(settings_file):
-        print(f'\n [ERROR] Failed to find settings file ({settings_file})')
+        print('\n [ERROR] Failed to find settings file (%s)' % settings_file)
         return -1
 
     settings = configparser.ConfigParser()
@@ -230,14 +236,14 @@ def main(settings_file) -> int:
         else:
             project_path = os.path.join(os.getcwd(), os.path.dirname(settings_file))
 
-    print(f'Project path: {project_path}')
+    print('Project path: %s' % project_path)
 
     if settings.has_section('Processors'):
         load_processors(settings['Processors'])
 
     build_cfg = os.path.join(project_path, settings['Files']['config'])
     if not os.path.exists(build_cfg):
-        print(f'\n [ERROR] Failed to find build config file ({build_cfg})')
+        print('\n [ERROR] Failed to find build config file (%s)' % build_cfg)
         return -1
 
     cfg = configparser.ConfigParser()
@@ -245,7 +251,7 @@ def main(settings_file) -> int:
 
     # Validation and preparation
     if not cfg.sections():
-        print(f'\n[ERROR] Failed to read {build_cfg} file! There is no sections defined!')
+        print('\n[ERROR] Failed to read %s file! There is no sections defined!' % build_cfg)
         return -1
 
     version_tracker_filename = os.path.join(project_path, settings['Files']['VersionTracker'])
@@ -256,14 +262,13 @@ def main(settings_file) -> int:
         str(settings["Version"]["patch"]),
         str(version)
     ))
-    print(f'Full version of the build: {full_version}')
+    print('Full version of the build: %s' % full_version)
 
     build_config_sections = cfg.sections()
     for idx, artifact_config_name in enumerate(build_config_sections):
         build_config = cfg[artifact_config_name]
         print('=' * 80)
-        print(f'{idx + 1} of {len(build_config_sections)} |'
-              f' Going to build artifact {artifact_config_name}')
+        print('%s of %s | Going to build artifact %s' % (idx+1, len(build_config_sections),artifact_config_name))
         print('=' * 80)
 
         op_result = build_artifact(project_path, settings, build_config, full_version)
@@ -273,20 +278,23 @@ def main(settings_file) -> int:
 
         print()
         print_progress_bar(idx+1, len(build_config_sections),
-                           size=59, label='Overall build progress')
+                           size=49, label='Overall build progress')
 
     print('All done!')
     save_build_version(version_tracker_filename, version)
 
     return 0
 
-def print_progress_bar(current, limit, size=50, label='Progress', bar_char='*', empty_char=' '):
+def print_progress_bar(current, limit, size=40, label='Progress', bar_char='*', empty_char=' '):
     '''Prints progress bar'''
     percentage = int(current / limit * 100)
     width = int(current / limit * size)
-    progress_bar = f"[{bar_char * width}{empty_char * (size - width)}]"
+    progress_bar = "[%s%s]" % (
+        bar_char * width,
+        empty_char * (size - width)
+    )
 
-    print(f'{label}: {progress_bar} {percentage:>2}%')
+    print('{label}: {progress_bar} {percentage:>2}%'.format(label=label, progress_bar=progress_bar, percentage=percentage))
 
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser()
@@ -299,5 +307,5 @@ if __name__ == '__main__':
     args = arg_parser.parse_args()
 
     BUILD_RESULT = main(args.settings_file)
-    print(f'\n\nBuild finished with code {BUILD_RESULT}')
+    print('\n\nBuild finished with code %s' % BUILD_RESULT)
     sys.exit(BUILD_RESULT)
