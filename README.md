@@ -28,6 +28,7 @@ Tool helps compose group of files into a single file keeping given order of cont
 
 File content:
 - `[General] -> release = (yes/no)` -- defines build mode. On `release=yes` artifact will be written at `Paths.projectPath/Paths.releaseTo` directory. Otherwise target location will be `Paths.projectPath/Paths.buildTo` and artifact filename will contain build version (e.g. `artifact.js-0.0.1.1`).
+- `[General] -> failOnMissingFiles = (yes/no)` -- when set to `yes` - stops the build once failed to find source file from listed in `artifacts.ini`. 
 - `[Version]` section -- defines artifact version. Last digit (build version) will be picked from `Files.versionTracker` file at the `Paths.projectPath` directory (or `0` if there is no file).
 - `[Paths] -> projectPath` -- absolute path to project. Other paths will be calculated relatively to this path.
 - `[Paths] -> defaultSourceDir` -- relative path that will be used to calculate artifacts source files location.
@@ -35,6 +36,8 @@ File content:
 - `[Paths] -> releaseTo` -- relative path of target location for release artifacts.
 - `[Files] -> config` -- relative path for artifacts build configuration `.INI` file.
 - `[Files] -> versionTracker` -- name of the file for build version tracking. File created/overwritten on each successfull build.
+- `[Logging] -> logToFile = (yes/no)` -- enables logging of building process to a file.
+- `[Logging] -> level = (yes/no)` -- sets log level.
 - `[Processors]` -- section contains list of files processors to load, in format `processorName = packageName.moduleName`
 
 ## Artifacts build config (artifacts.ini) <a name='artifact'></a>
@@ -71,6 +74,7 @@ To skip param place `:` right after previous `:` symbol (e.g. `prefixInstuction:
 ##### Instructions
 - `wrap`
 - `map`
+- `inline`
 
 
 #### `wrap` instruction params:
@@ -146,6 +150,28 @@ Optional, name of object that contains values
    ----processed to----
    MapName['A'] = Target.Foo;
    MapName['B'] = Target.Bar;+
+```
+
+#### `inline` instruction params:
+Wraps fake named parameters in comments. Fake named parameters are defined like `myFunction(*name='John)` and may be used as a hint for a developer during writing of function calls. Parameters are still positional, so you need to list it in right order.
+
+##### Param1 - Subtype 
+Name of instruction subtype. Currently only one `fake_named_params`
+
+
+##### Examples:
+Source file:
+```js
+//@inline:fake_named_params
+function MyFunction(isChecked, size, title) {
+	...
+}
+
+MyFunction(*isChecked=false, *size=15, *title=titles[10])
+```
+After processor:
+```js
+MyFunction(/*isChecked*/ false, /*size*/ 15, /*title*/ titles[10])
 ```
 
 

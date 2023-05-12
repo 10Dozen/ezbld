@@ -4,9 +4,20 @@ import sys
 import os
 import configparser
 import argparse
+import logging
 from importlib import import_module
+from datetime import datetime
+from enum import Enum
 
 BUILD_SETTINGS = 'settings.ini'
+DEFAULT_LOG_LEVEL = logging.INFO
+LOG_TO_FILE = '{project}_{version}_{timestamp}_log.log'
+LOG_FORMAT = '%(levelname)s (%(asctime)s): [%(filename)s::%(funcName)s] %(message)s'
+
+class SourceFilesMarkup(Enum):
+    INVALID = 0
+    FILE = 1
+    TEXT_INSERT = 2
 
 processors = {}
 
@@ -18,7 +29,7 @@ class ProcessorInterface:
 
     @staticmethod
     def get_processor(instruction: str):
-        '''Creates and returns processor function 
+        '''Creates and returns processor function
             according to given instruction found in source file
         '''
 
@@ -36,11 +47,13 @@ def get_processor(processor_name, params):
 def get_last_build_version(version_track_filename) -> int:
     ''' Reads saved version of the last build from given file.
     '''
+    if not os.path.exists(version_track_filename):
+        return 0
+
     version = 0
-    if os.path.exists(version_track_filename):
-        with open(version_track_filename, 'r', encoding='utf-8') as bvf:
-            line = bvf.readline()
-            version = int(line) + 1
+    with open(version_track_filename, 'r', encoding='utf-8') as bvf:
+        line = bvf.readline()
+        version = int(line) + 1
 
     return version
 
@@ -58,53 +71,63 @@ def process_file(filename: str, processor_name) -> str:
        Returns: string of processed content
     '''
     content = []
+    instructions = []
     with open(filename, 'r', encoding='utf-8') as src_file:
         if not processor_name or not processors.get(processor_name):
-            print('\tprocess_file:> No processor name defined or'
+            logging.info('\tNo processor name defined or'
                   ' processor for %s not found. Copy as is.' % (processor_name))
             return src_file.read()
 
         # Look for processor instructions in first lines of the file.
         # If any non-empty line without instruction met
-        # stop checking and consider file as a simple one
+        # stop checking and consider that instuction block is over
         defines = get_processor_definitions(processor_name)
-        instructions = []
-
-        content = src_file.readlines()
-        contentStartsAt = 0
-        for i, line in enumerate(content):
+        for i, line in enumerate(src_file):
             if not line:
                 continue
-            
+
             # If instruction line found - add to list
             # if line is not an instruction - stop futher search
-            if [line for define in defines if line.lower().startswith(define)]:
+            if any((line.lower().startswith(define) for define in defines)):
                 instructions.append(line)
             else:
-                contentStartsAt = i
+                content = list(src_file)
+                content.insert(0, line)
                 break
-                
-        if not instructions:
-            print('\tprocess_file:>  There is no process instruction found. Copy as is.')
-            return ''.join(content)
 
-        # Select and apply processor by generating apropriate function
-        print('\tprocess_file:> Found %s instruction(s)' % len(instructions))
-        
-        content = content[contentStartsAt:]
-        processors_count = 0
-        for instruction in instructions:
-            processor = get_processor(processor_name, instruction)
-            if not processor:
-                print('\n[ERROR] Failed to define processor function for instruction %s' % instruction)
-            else:
-                print('\t\tRunning processor %s' % processor.__name__)
-                processors_count +=1 
-                content = processor(content)
+    if not instructions:
+        logging.info('\tThere is no processor instruction found. Copy as is.')
+        return ''.join(content)
 
-        print('\tprocess_file:> Content was processed with %s processors' % processors_count)
+    # Select and apply processor by generating apropriate function
+    logging.info('\tFound %s instruction(s)' % len(instructions))
+
+    processors_count = 0
+    for instruction in instructions:
+        processor = get_processor(processor_name, instruction)
+        if not processor:
+            logging.warning('\tFAILED to define processor function for instruction %s' % instruction)
+        else:
+            logging.info('\t\tRunning processor %s' % processor.__name__)
+            processors_count +=1
+            content = processor(content)
+
+    logging.info('\tContent was processed with %s processors' % processors_count)
 
     return ''.join(content)
+
+def source_files_generator(source_dir, files):
+    for filename in files:
+        if filename.startswith(">>"):
+            yield (filename, SourceFilesMarkup.TEXT_INSERT)
+            continue
+
+        filepath = os.path.join(source_dir, filename)
+        if not os.path.exists(filepath):
+            yield (filepath, SourceFilesMarkup.INVALID)
+        else:
+            yield (filepath, SourceFilesMarkup.FILE)
+
 
 def build_artifact(project_path: str,
                    settings: configparser.ConfigParser,
@@ -122,7 +145,7 @@ def build_artifact(project_path: str,
         path_prefix = settings['Paths']['projectPath']
     else:
         path_prefix = project_path
-    print('Path prefix: %s' % path_prefix)
+    logging.info('Path prefix: %s' % path_prefix)
 
     source_dir = ''
     if build_config.get('source_dir'):
@@ -130,21 +153,25 @@ def build_artifact(project_path: str,
     elif settings['Paths'].get('defaultSourceDir'):
         source_dir = settings['Paths']['defaultSourceDir']
     else:
-        print('\n[ERROR] Failed to find source dir in config!')
+        logging.error('\n[ERROR] Failed to find source dir in config!')
         return -1
     source_dir = os.path.join(path_prefix, source_dir)
 
     is_release = settings['General']['release'].lower() == 'yes'
-    target_dir = os.path.join(path_prefix,
-                              settings['Paths']['releaseTo' if is_release else 'buildTo'] )
+    fail_on_missing_files = settings['General']['failOnMissingFiles'].lower() == 'yes'
 
-    print('Source: %s' % source_dir)
-
+    
     if not os.path.exists(source_dir):
-        print('\n[ERROR] Source directory not exists!')
+        logging.error('\n[ERROR] Source directory [%s] not exists!' % source_dir)
         return -1
+    logging.info('Source: %s' % source_dir)
+    
+    target_dir = os.path.join(
+                    path_prefix,
+                    settings['Paths']['releaseTo' if is_release else 'buildTo']
+                )
     if not os.path.exists(target_dir):
-        print('\n[ERROR] Target directory not exists!')
+        logging.error('\n[ERROR] Target directory [%s] not exists!' % target_dir)
         return -1
 
     # Adjust target directory according to artifact settings
@@ -152,27 +179,9 @@ def build_artifact(project_path: str,
         target_dir = os.path.join(target_dir, build_config['target_dir'])
         if not os.path.exists(target_dir):
             os.makedirs(target_dir)
-            print('WARNING: Directories has been generated for path %s' % target_dir)
+            logging.warning('WARNING: Directories has been generated for path %s' % target_dir)
 
-    print('Target: %s' % target_dir)
-
-    source_files = []
-    missing_source_files = []
-    files = (f.strip() for f in build_config['order'].splitlines() if f.strip())
-    for src_filename in files:
-        if src_filename.startswith(">>"):
-            source_files.append(src_filename)
-            continue
-
-        src_file_path = os.path.join(source_dir, src_filename)
-        if not os.path.exists(src_file_path):
-            print('\n[ERROR] Source file %s not exists' % src_file_path)
-            missing_source_files.append(src_file_path)
-        else:
-            source_files.append(src_file_path)
-
-    if missing_source_files:
-        return -1
+    logging.info('Target: %s' % target_dir)
 
     # Building
     artifact_filename = build_config.name
@@ -181,19 +190,31 @@ def build_artifact(project_path: str,
 
     processor_name = build_config.get('processor')
 
-    source_size = len(source_files)
+    listed_files = [f.strip() for f in build_config['order'].splitlines() if f.strip()]
+    source_size = len(listed_files)
+    source_files = source_files_generator(source_dir, listed_files)
     with open(artifact_full_path, 'w', encoding='utf-8') as artifact:
         artifact.write('// Version: %s\n' % (version))
         artifact.write('// Build by ezbld tool =)\n\n')
 
-        for i, src_filename in enumerate(source_files):
-            # Direct text injection case: >>'Some string'
-            if src_filename.startswith(">>"):
+        for i, src_entry in enumerate(source_files):
+            src_filename, src_type = src_entry
+
+            if src_type == SourceFilesMarkup.INVALID:
+                if fail_on_missing_files:
+                    logging.error('\nBuild failed. Source file %s not exists' % src_filename)
+                    return -1
+
+                logging.warning('\nWARNING: Source file %s not exists' % src_filename)
+                continue
+
+            if src_type == SourceFilesMarkup.TEXT_INSERT:
                 artifact.write(src_filename[3:-1] + "\n")
                 continue
 
-            # File case
-            print('\n\tFile %s/%s <%s>' % (i+1, source_size, src_filename))
+            # Otherwise - file case
+            print()
+            logging.info('\tFile %s/%s <%s>' % (i+1, source_size, src_filename))
             processed_content = process_file(src_filename, processor_name)
 
             artifact.write(processed_content)
@@ -216,15 +237,14 @@ def load_processors(processors_settings):
 
 def main(settings_file) -> int:
     '''Entry point. Validates configs and starts building process.'''
-    print(settings_file)
     if not settings_file:
         settings_file = BUILD_SETTINGS
 
-    print(settings_file)
     if not os.path.exists(settings_file):
         print('\n [ERROR] Failed to find settings file (%s)' % settings_file)
         return -1
 
+    print('Using setting file %s' % settings_file)
     settings = configparser.ConfigParser()
     settings.read(settings_file)
     project_path = ''
@@ -264,23 +284,25 @@ def main(settings_file) -> int:
     ))
     print('Full version of the build: %s' % full_version)
 
+    setup_logger(settings, full_version)
+
     build_config_sections = cfg.sections()
     for idx, artifact_config_name in enumerate(build_config_sections):
         build_config = cfg[artifact_config_name]
-        print('=' * 80)
-        print('%s of %s | Going to build artifact %s' % (idx+1, len(build_config_sections),artifact_config_name))
-        print('=' * 80)
+        logging.info('=' * 80)
+        logging.info('%s of %s | Going to build artifact %s' % (idx+1, len(build_config_sections),artifact_config_name))
+        logging.info('=' * 80)
 
         op_result = build_artifact(project_path, settings, build_config, full_version)
         if op_result < 0:
-            print('\n[ERROR] Failed to build artifact. Programm stopped')
+            logging.error('\n[ERROR] Failed to build artifact. Programm stopped')
             return -1
 
         print()
         print_progress_bar(idx+1, len(build_config_sections),
                            size=49, label='Overall build progress')
 
-    print('All done!')
+    logging.info('All done!')
     save_build_version(version_tracker_filename, version)
 
     return 0
@@ -295,6 +317,36 @@ def print_progress_bar(current, limit, size=40, label='Progress', bar_char='*', 
     )
 
     print('{label}: {progress_bar} {percentage:>2}%'.format(label=label, progress_bar=progress_bar, percentage=percentage))
+
+
+def setup_logger(settings, version):
+    output_file = None
+    format=None
+    level = DEFAULT_LOG_LEVEL
+    
+    if settings.has_section('Logging'):
+        if settings['Logging'].get('logToFile') and settings['Logging']['logToFile'] == 'yes':
+            output_file = LOG_TO_FILE.format(
+                project=os.path.basename(settings['Paths']['projectPath']),
+                version=version,
+                timestamp=datetime.now().strftime('%y%m%d_%H%M%S')
+            )
+            format=LOG_FORMAT
+            
+        if settings['Logging'].get('level'):
+            print('Log level detected in settings file: %s' % settings['Logging']['level'].upper())
+            level = settings['Logging']['level'].upper()
+        
+    
+    logging.basicConfig(
+        filename=output_file,
+        encoding='utf-8',
+        level=level,
+        format=format
+    )
+    if output_file:
+        logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
+
 
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser()

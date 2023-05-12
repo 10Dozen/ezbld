@@ -1,6 +1,11 @@
 '''Plugin for native JavaScript processor'''
 from ezbld import ProcessorInterface
 
+def add_indent(lines, indent=4):
+    prefix = ' '*indent
+    lines[:] = ['%s%s' % (prefix, line) for line in lines]
+
+
 def js_proc_wrap_function(directives):
     '''Wraps content in JS function definition
     '''
@@ -8,10 +13,8 @@ def js_proc_wrap_function(directives):
     function_name = directives[2]
     function_params = directives[3]
 
-    def JS_Wrap_to_function(lines):
-        for idx, line in enumerate(lines):
-            lines[idx] = '    %s' % line
-
+    def JS_Wrap_to_function(lines):        
+        add_indent(lines)
         lines.insert(0, '%s = function (%s) {\n' % (function_name, function_params))
         lines.append('}\n')
         return lines
@@ -25,9 +28,7 @@ def js_proc_wrap_closure(directives):
     function_params = directives[3]
 
     def JS_Wrap_to_closure(lines):
-        for idx, line in enumerate(lines):
-            lines[idx] = '    %s' % line
-
+        add_indent(lines)
         lines.insert(0, '%s = new (function (%s) {\n' % (
             function_name,
             function_params
@@ -43,9 +44,7 @@ def js_proc_wrap_object(directives):
     object_name = directives[2]
 
     def JS_Wrap_to_object(lines):
-        for idx, line in enumerate(lines):
-            lines[idx] = '    %s' % line
-
+        add_indent(lines)
         lines.insert(0, '%s = {\n' % object_name)
         lines.append('}\n')
         return lines
@@ -119,9 +118,8 @@ def js_proc_inline_fake_named_parameters(directives):
     def JS_Inline_fake_named_parameters(lines):        
         import re
         pattern = re.compile(r'\*([a-zA-Z0-9_]+)=', re.MULTILINE)
-        
-        for idx, line in enumerate(lines):
-            lines[idx] = pattern.sub(r'/*\1*/ ', line)
+        replace_by = r'/*\1*/ '
+        lines[:] = [pattern.sub(replace_by, line) for line in lines]
         
         return lines
     
