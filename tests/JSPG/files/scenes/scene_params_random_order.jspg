@@ -1,0 +1,15 @@
+# SceneParamsRandomOrder
+
+Text line in the beginning.
+
+*goto: "Scene2"
+
+Text line between params.
+
+*post_exec: Foo.Bar()
+**pre_exec:
+    let foo = bar()
+    foo.update(10)
+**
+
+Final text line here.

@@ -43,7 +43,7 @@ def js_proc_wrap_object(directives):
     # //@wrap:object:NameOfObject
     object_name = directives[2]
 
-    def JS_Wrap_to_object(lines):
+    def JS_Wrap_to_object(lines: list):
         add_indent(lines)
         lines.insert(0, '%s = {\n' % object_name)
         lines.append('}\n')

@@ -1,0 +1,12 @@
+# SceneWithEmptyParams |
+
+*goto:
+*pre_exec:
+
+Desc line 1.
+
+Desc line 2.
+
+**post_exec:
+
+*

@@ -1,0 +1,20 @@
+# SceneWithMultilineParams
+
+**pre_exec:
+    MyGame.PreExec()
+    if (MyGame.State() == States.OK) {
+        MyGame.Activate()
+    } else {
+        MyGame.VerifyLoadedFile()
+    }
+**post_exec:
+    MyGame.SetSceneResult(1, true)
+    JSPG.GoTo('Scene3')
+**
+
+**goto:
+    return MyGame.SelectScene()
+*
+
+
+Some description line.
