@@ -25,7 +25,7 @@ class TestJSPGActionEntity:
         assert entity.get("desc") == []
 
     def test_custom(self):
-        entity = JSPGAction.get(self.NAME, self.TYPE, 
+        entity = JSPGAction.get(self.NAME, self.TYPE,
                                 self.PORTRAIT, self.TAG)
         entity['scene'] = self.SCENE
 
@@ -60,7 +60,7 @@ class TestJSPGActionEntity:
         print(exported)
 
         lines = exported.splitlines()
-        scene_name_match = self.EXPORT_START_LINE_PATTERN.match(lines[0])    
+        scene_name_match = self.EXPORT_START_LINE_PATTERN.match(lines[0])
         assert scene_name_match
         assert scene_name_match.group(1) == entity.get('scene')
 
@@ -160,7 +160,6 @@ class TestJSPGActionEntity:
 
         assert first_block == expected_blocks[0]
         assert second_block == expected_blocks[1]
-
 
     def test_export_exec_code_prop(self, jspg_action_partially_configured):
         '''Tests formatting of code entries

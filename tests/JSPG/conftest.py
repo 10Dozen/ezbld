@@ -16,7 +16,7 @@ def pytest_configure(config):
 def jspg_scene_partially_configured():
     '''Returns partially configured JSPG scene entity
     '''
-    e = JSPGScene.get(name='Test_Scene', type='scene_right')
+    e = JSPGScene.get(name='Test_Scene', entity_type='scene_right')
     e['desc'] = [
         ["Description line 1."],
         ["Description line 2."],
@@ -28,7 +28,7 @@ def jspg_scene_partially_configured():
 def jspg_scene_configured():
     '''Returns fully configured JSPG scene entity
     '''
-    e = JSPGScene.get(name='Test_Scene', type='dialog_right', 
+    e = JSPGScene.get(name='Test_Scene', entity_type='dialog_right',
                       portrait='my-character.jpg')
     e['goto'] = '"Test_Scene_2"'
     e['desc'] = [
@@ -44,7 +44,7 @@ def jspg_action_partially_configured():
     '''Returns paritally configured JSPG action entity
     '''
     e = JSPGAction.get(name='Test action name 1',
-                       type='dialog_right', portrait='my-character.jpg',
+                       entity_type='dialog_right', portrait='my-character.jpg',
                        tag='MyTag')
     e['scene'] = 'TestScene'
     e['desc'] = [
@@ -59,7 +59,7 @@ def jspg_action_configured():
     '''Returns fully configured JSPG action entity
     '''
     e = JSPGAction.get(name='Test action name 2',
-                       type='dialog_right', portrait='my-character.jpg',
+                       entity_type='dialog_right', portrait='my-character.jpg',
                        tag='MyTag')
     e['scene'] = 'TestScene'
     e['goto'] = '"Scene2"'

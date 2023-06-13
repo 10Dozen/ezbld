@@ -1,0 +1,14 @@
+@ Action with multiline params || MyTag
+
+*scene: CurrentScene
+*icon: {text: 'A', class: 'icon-button-red'}
+**goto:
+    Foo.Bar()
+    return Foo.GetNextScene()
+**condition:
+    if (Foo.Bar()) return true
+    return Foo.CheckOtherCondition()
+**exec:
+    Player.AddXP(1000)
+    Player.AddMoney(500)
+    GUI.UpdatePlayerInfo()

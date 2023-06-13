@@ -3,11 +3,11 @@ Small tool for files composition.
 
 # How To
 1. Copy `ezbld` to any directory
-1. Set up artifacts build configurations (e.g. `example_project/artifacts.ini`):
-    - Each artifact should have separate section, where section name is the name of the resulting artifact file (e.g. for section `[myscipt.js]` artifact will be  `myscript.js`)
+1. Set up artifacts build configurations (e.g. `artifacts.ini`):
+    - Each artifact should have separate section, where section name is name of the resulting artifact (e.g. for section `[myscipt.js]` artifact will be  `myscript.js`)
     - `order` defines list of relative paths to files to compose
 1. Set up settings file (e.g. `settings.ini`):
-    - `Paths -> projectPath` - absolute path of your project
+    - `Paths -> projectPath` - absolute path to your project
     - `Paths -> buildTo` - relative path to put debug builds
     - `Files -> config` - relative path of artifacts build configuration
 1. Run `py ezbld.py -s path_to_settings_file` (e.g. `py ezbld.py -s settings.ini`)
@@ -20,7 +20,7 @@ Small tool for files composition.
     - [Custom processor](#processors.custom)
 
 
-Tool helps compose group of files into a single file keeping given order of content. Files may also be processed by custom processor before merging.
+Tool helps compose groupd of files into single file keeping given order of content. Files may also be processed by custom processor before merging.
 
 ## Settings file (settings.ini) <a name='settings'></a>
 
@@ -28,16 +28,13 @@ Tool helps compose group of files into a single file keeping given order of cont
 
 File content:
 - `[General] -> release = (yes/no)` -- defines build mode. On `release=yes` artifact will be written at `Paths.projectPath/Paths.releaseTo` directory. Otherwise target location will be `Paths.projectPath/Paths.buildTo` and artifact filename will contain build version (e.g. `artifact.js-0.0.1.1`).
-- `[General] -> failOnMissingFiles = (yes/no)` -- when set to `yes` - stops the build once failed to find source file from listed in `artifacts.ini`. 
-- `[Version]` section -- defines artifact version. Last digit (build version) will be picked from `Files.versionTracker` file at the `Paths.projectPath` directory (or `0` if there is no file).
+- `[Version]` section -- defined artifact version. Build version will be added in non-release build sequence. Build version number will be picked from `Files.versionTracker` file at the `Paths.projectPath` directory.
 - `[Paths] -> projectPath` -- absolute path to project. Other paths will be calculated relatively to this path.
 - `[Paths] -> defaultSourceDir` -- relative path that will be used to calculate artifacts source files location.
 - `[Paths] -> buildTo` -- relative path of target location for non-release artifacts.
 - `[Paths] -> releaseTo` -- relative path of target location for release artifacts.
 - `[Files] -> config` -- relative path for artifacts build configuration `.INI` file.
-- `[Files] -> versionTracker` -- name of the file for build version tracking. File created/overwritten on each successfull build.
-- `[Logging] -> logToFile = (yes/no)` -- enables logging of building process to a file.
-- `[Logging] -> level = (yes/no)` -- sets log level.
+- `[Files] -> versionTracker` -- name of the file for build version tracking.
 - `[Processors]` -- section contains list of files processors to load, in format `processorName = packageName.moduleName`
 
 ## Artifacts build config (artifacts.ini) <a name='artifact'></a>
@@ -48,42 +45,38 @@ File content:
     - `processor` -- name of the processor to apply to source files.
     - `source_dir` -- overwrites `Paths.defaultSourceDir` and sets relative path of artifact's source files.
     - `target_dir` -- relative path of artifact target location (added to `Paths.buildTo/releaseTo` path).
+    - `header_message` -- optional text message to be added in the very beginning of the build artifact. Placeholders `{version}` and `{timestamp}` will be replaced with actual build data using `.format()` function.
     - `order` -- ordered list of files and instructions to use as sources, each file/instuction at separate line:
         - File paths relative to source directory (`Paths.defaultSourceDir` or `source_dir`, if defined).
         - Files content will be added to artifact directly or after processing, if processor instructions are given in files.
-        - For lines in format `>>'Text in single quotes'` text in quotes will be directly added to artifact.
+        - Lines in format `>>'Text in single quotes'` will be directly added to artifact.
 
 ## Processors <a name='processors'></a>
 File content may be modified before addition by text processor specified in the artifacts build config. To mark file as processible - add an processor instruction line in the beggining of the file and specify `processor` parameter at artifact build config with name from `Processors` section of settings file.
 
-Instruction format depends on processor used.
-
-### JavaScript processor <a name='processors.js'></a>
-##### Instruction prefix: 
-`//@`
-
-##### Instruction Format
-`//@Instruction:Param1:Param2:...:ParamN`
+Instruction format:
+`(Prefix)(Instruction):(Param1):(Param2):...:(ParamN)`
 
 where,
-- `Instruction` -- name of the instruction to apply to file.
-- `ParamN` -- parameters of instruction
+- `(Prefix)` -- processor specified prefix of the processor instruction
+- `(Instruction)` -- name of the instruction to apply to file.
+- `(ParamN)` -- parameters of instruction
 
 To skip param place `:` right after previous `:` symbol (e.g. `prefixInstuction::param`)
 
+### JavaScript processor <a name='processors.js'></a>
+##### Instruction prefix:
+`//@`
 ##### Instructions
 - `wrap`
 - `map`
-- `inline`
-
 
 #### `wrap` instruction params:
 Wrap instruction wraps file content in specific JS structure and adds needed indent to each line.
-
-##### Param1 - Wrap Type: 
+##### Param1 - Wrap Type:
 One of following `object`, `function`, `closure`. Type of wrapping:
 - for `object` content will be wrapped in `Param2 = {...}`,
-- `function` - `Param2 = function (Param3) {...}`, 
+- `function` - `Param2 = function (Param3) {...}`,
 - `closure` - `Param2 = new (function (Param3){})`
 
 ##### Param2 - Name
@@ -112,7 +105,7 @@ MyFunction = function (name, size=5) {
 #### `map` instruction params:
 Maps keys and values in the object. File should be formatted as list of `key = value`, each pair on separate line. Value may be set to `*` - processor will replace it with name of the key (e.g. for mapping 2 objects with similar keys).
 
-##### Param1 - Object name 
+##### Param1 - Object name
 Name of the resulting object
 
 ##### Param2 - Keys source object
@@ -143,35 +136,13 @@ Optional, name of object that contains values
    ----processed to----
    MapName[Source.KeyA] = 123;
    MapName[Source.KeyB] = 456;
-   
+
 4) //@map:MapName::Target
    'A' = Foo
    'B' = Bar
    ----processed to----
    MapName['A'] = Target.Foo;
    MapName['B'] = Target.Bar;+
-```
-
-#### `inline` instruction params:
-Wraps fake named parameters in comments. Fake named parameters are defined like `myFunction(*name='John)` and may be used as a hint for a developer during writing of function calls. Parameters are still positional, so you need to list it in right order.
-
-##### Param1 - Subtype 
-Name of instruction subtype. Currently only one `fake_named_params`
-
-
-##### Examples:
-Source file:
-```js
-//@inline:fake_named_params
-function MyFunction(isChecked, size, title) {
-	...
-}
-
-MyFunction(*isChecked=false, *size=15, *title=titles[10])
-```
-After processor:
-```js
-MyFunction(/*isChecked*/ false, /*size*/ 15, /*title*/ titles[10])
 ```
 
 
@@ -188,4 +159,3 @@ To add custom processor one need to:
 To use custom processor:
 - add processor to settings file (`settings.ini`) to `[Processors]` section under unique name and value in format `package.modulename` (e.g. `processors\js.py` -> `processors.js`)
 - set `processor` property for artifact in artifacts build config (e.g. `artifacts.ini`)
-    

@@ -181,7 +181,7 @@ class TestJSPGProcessorScene:
             ('This is a scene with properties.',),
             ('It should be parsed into fully configured scene entity.',)
         ]
-        
+
         expected_exported = JSPGScene.to_string(expected)
         print_comparison(expected_exported, jspg_parsed_content[0])
 
@@ -196,7 +196,7 @@ class TestJSPGProcessorScene:
             ('First multiline block.', 'Line 1/1.', 'Line 1/2.'),
             ('Second multiline block.', 'Line ${2/1}.', 'Line ${2/2}.')
         ]
-        expected_exported = JSPGScene.to_string(expected)        
+        expected_exported = JSPGScene.to_string(expected)
         print_comparison(expected_exported, jspg_parsed_content[0])
 
         assert jspg_parsed_content[0] == expected_exported
@@ -397,11 +397,59 @@ class TestJSPGProcessorActions:
             print_comparison(action_exported, jspg_parsed_content[idx])
             assert jspg_parsed_content[idx] == action_exported
 
-    def test_parse_detailed_action(self):
-        pass
+    @pytest.mark.jspg_file(r'tests\JSPG\files\actions\detailed_action.jspg')
+    def test_parse_detailed_action(self, jspg_parsed_content):
+        assert jspg_parsed_content
 
-    def test_parse_action_with_multiline_text(self):
-        pass
+        expected = JSPGAction.get('Detailed Action', 'dialog_right', 'mypic.jpg', 'MyTag')
+        expected['scene'] = "CurrentScene"
+        expected['icon'] = '{img: my_picture.jpg}'
+        expected['condition'] = '"Foo.Bar"'
+        expected['exec'] = ("\n"
+                            "    let foo = bar()\n"
+                            "    foo.update(100)")
+        expected['goto'] = '"SceneAnother"'
+        expected['desc'] = [("Some line of description.",)]
 
-    def test_parse_action_with_multiline_params(self):
-        pass
+        expected_exported = JSPGAction.to_string(expected)
+        print_comparison(expected_exported, jspg_parsed_content[0])
+        assert jspg_parsed_content[0] == expected_exported
+
+    @pytest.mark.jspg_file(r'tests\JSPG\files\actions\action_with_multiline_text.jspg')
+    def test_parse_action_with_multiline_text(self, jspg_parsed_content):
+        assert jspg_parsed_content
+
+        expected = JSPGAction.get('Action with multiline text', 'scene_right', None, 'MyTag')
+        expected['scene'] = 'CurrentScene'
+        expected['goto'] = '"Scene2"'
+        expected['desc'] = [
+            ('Block 1.', 'Line 1.', 'Line 2.'),
+            ('Block 2.', 'Line ${1}.', 'Line ${2}.'),
+            ('Line ${3}',)
+        ]
+
+        expected_exported = JSPGAction.to_string(expected)
+        print_comparison(expected_exported, jspg_parsed_content[0])
+        assert jspg_parsed_content[0] == expected_exported
+
+    @pytest.mark.jspg_file(r'tests\JSPG\files\actions\action_with_multiline_params.jspg')
+    def test_parse_action_with_multiline_params(self, jspg_parsed_content):
+        assert jspg_parsed_content
+
+        expected = JSPGAction.get('Action with multiline params', None, None, 'MyTag')
+        expected['scene'] = 'CurrentScene'
+        expected['icon'] = "{text: 'A', class: 'icon-button-red'}"
+        expected['goto'] = ('\n'
+                            '    Foo.Bar()\n'
+                            '    return Foo.GetNextScene()')
+        expected['condition'] = ('\n'
+                                 '    if (Foo.Bar()) return true\n'
+                                 '    return Foo.CheckOtherCondition()')
+        expected['exec'] = ('\n'
+                            '    Player.AddXP(1000)\n'
+                            '    Player.AddMoney(500)\n'
+                            '    GUI.UpdatePlayerInfo()')
+
+        expected_exported = JSPGAction.to_string(expected)
+        print_comparison(expected_exported, jspg_parsed_content[0])
+        assert jspg_parsed_content[0] == expected_exported
