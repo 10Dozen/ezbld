@@ -1,0 +1,11 @@
+# SceneWithIndents
+
+    *goto:    "Scene2"   
+
+              *pre_exec:     Foo.Bar()    
+    
+Desc line 1. 
+
+   Desc line 2.   
+       
+         Desc line 3.

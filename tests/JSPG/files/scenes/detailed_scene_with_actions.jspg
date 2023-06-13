@@ -1,0 +1,20 @@
+# Scene_With_Actions | scene
+
+Description line 1.
+
+Description line 2.
+
+Description line 3.
+
+
+@ My action 1 | dialog_right mypic.jpg | MyTag1
+
+*goto: "SomeScene"
+*exec: console.log(123)
+
+Description of action, line 1.
+
+Description of action, line 2.
+
+Description of action, line 3.
+

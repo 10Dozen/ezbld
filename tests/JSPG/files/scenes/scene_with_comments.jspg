@@ -1,0 +1,16 @@
+# SceneWithComments
+
+Line 1.
+
+// Line commented.
+
+Block 1.
+Line 1-1.
+// Line 1-2.
+Line 1-3.
+
+// *pre_exec: Foo.Bar()
+**post_exec:
+    // Foo.Bar()
+    Bar.Foo()
+*

@@ -13,7 +13,7 @@ def js_proc_wrap_function(directives):
     function_name = directives[2]
     function_params = directives[3]
 
-    def JS_Wrap_to_function(lines):        
+    def JS_Wrap_to_function(lines):
         add_indent(lines)
         lines.insert(0, '%s = function (%s) {\n' % (function_name, function_params))
         lines.append('}\n')
@@ -43,7 +43,7 @@ def js_proc_wrap_object(directives):
     # //@wrap:object:NameOfObject
     object_name = directives[2]
 
-    def JS_Wrap_to_object(lines):
+    def JS_Wrap_to_object(lines: list):
         add_indent(lines)
         lines.insert(0, '%s = {\n' % object_name)
         lines.append('}\n')
@@ -74,7 +74,7 @@ def js_proc_map(directives):
            -----
            MapName[Source.KeyA] = 123;
            MapName[Source.KeyB] = 456;
-           
+
         4) //@map:MapName::Target
            'A' = Foo
            'B' = Bar
@@ -115,14 +115,14 @@ def js_proc_map(directives):
     return JS_Map
 
 def js_proc_inline_fake_named_parameters(directives):
-    def JS_Inline_fake_named_parameters(lines):        
+    def JS_Inline_fake_named_parameters(lines):
         import re
         pattern = re.compile(r'\*([a-zA-Z0-9_]+)=', re.MULTILINE)
         replace_by = r'/*\1*/ '
         lines[:] = [pattern.sub(replace_by, line) for line in lines]
-        
+
         return lines
-    
+
     return JS_Inline_fake_named_parameters
 
 js_processor = {
@@ -151,7 +151,7 @@ class JSProcessor(ProcessorInterface):
 
     @staticmethod
     def get_processor(instruction: str):
-        '''Creates and returns processor function 
+        '''Creates and returns processor function
             according to given parameters read from directive
         '''
         params = instruction[len(js_processor['prefix']):].strip().split(js_processor['separator'])

@@ -1,0 +1,9 @@
+# DetailedScene | dialog my_character.jpg
+
+*pre_exec: MyGame.ExecutePre()
+*post_exec: MyGame.ExecutePost()
+*goto: "Scene2"
+
+This is a scene with properties.
+
+It should be parsed into fully configured scene entity.

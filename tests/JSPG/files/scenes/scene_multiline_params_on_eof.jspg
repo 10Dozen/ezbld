@@ -1,0 +1,8 @@
+# SceneMultilineParamsOnEOF
+
+Line 1.
+
+Line ${Foo.Bar()}.
+
+**post_exec:
+    JSPG.GoTo('NormalScene')
