@@ -1,0 +1,36 @@
+[0]
+cls = JSPGScene
+name = CurrentScene
+desc = Description line.
+
+[1]
+cls = JSPGAction
+name = Action 1
+scene = CurrentScene
+goto = "NextScene"
+exec = Foo.Bar()
+
+[2]
+cls = JSPGAction
+name = Action 2
+scene = CurrentScene
+goto = "NextScene"
+desc = Description of action.
+
+[3]
+cls = JSPGAction
+name = Action 4
+scene = CurrentScene
+goto = "NextScene"
+condition =
+    \tBar.Foo()
+
+[4]
+cls = JSPGAction
+name = Action 4
+scene = CurrentScene
+goto = "NextScene"
+desc =
+    It's over!
+
+    It's literraly over!

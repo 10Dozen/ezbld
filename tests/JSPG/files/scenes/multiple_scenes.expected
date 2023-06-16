@@ -1,0 +1,14 @@
+[0]
+cls = JSPGScene
+name = Scene1
+desc = This is a first scene.
+
+[1]
+cls = JSPGScene
+name = Scene2
+desc = This is a second scene.
+
+[2]
+cls = JSPGScene
+name = Scene3
+desc = This is a third scene.

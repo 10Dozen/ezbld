@@ -1,0 +1,18 @@
+[0]
+cls = JSPGScene
+name = SceneParamsRandomOrder
+goto = "Scene2"
+post_exec = Foo.Bar()
+pre_exec =
+    \tlet foo = bar()
+    \tfoo.update(10)
+
+desc =
+    Text line in the beginning.
+
+    Text line between params.
+
+    Final text line here.
+
+
+

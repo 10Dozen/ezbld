@@ -1,11 +1,13 @@
+import os
 import sys
 import re
 import json
 import pytest
 
-sys.path.append(r'F:\Workstation\QSP\AxmaProjects\v2\buildtool')
+sys.path.append(os.getcwd())
 
 from processors.jspg import JSPGAction
+
 
 class TestJSPGActionEntity:
     SCENE = 'TestScene'

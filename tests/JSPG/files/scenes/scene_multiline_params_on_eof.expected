@@ -1,0 +1,10 @@
+[0]
+cls = JSPGScene
+name = SceneMultilineParamsOnEOF
+post_exec =
+    \tJSPG.GoTo('NormalScene')
+
+desc =
+    Line 1.
+
+    Line ${Foo.Bar()}.

@@ -1,0 +1,12 @@
+[0]
+cls = JSPGScene
+name = SceneWithComments
+post_exec =
+    \tBar.Foo()
+
+desc =
+    Line 1.
+
+    Block 1.
+    Line 1-1.
+    Line 1-3.

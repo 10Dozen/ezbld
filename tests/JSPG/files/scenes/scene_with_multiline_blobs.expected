@@ -1,0 +1,11 @@
+[0]
+cls = JSPGScene
+name =  MultilinedScene
+desc =
+    First multiline block.
+    Line 1/1.
+    Line 1/2.
+
+    Second multiline block.
+    Line ${2/1}.
+    Line ${2/2}.

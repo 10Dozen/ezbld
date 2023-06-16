@@ -1,6 +1,7 @@
-import re
+import os
 import sys
-sys.path.append(r'F:\Workstation\QSP\AxmaProjects\v2\buildtool')
+import re
+sys.path.append(os.getcwd())
 
 from processors.jspg import JSPGScene
 

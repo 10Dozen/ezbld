@@ -1,0 +1,28 @@
+[0]
+cls = JSPGScene
+name = Scene1
+type = scene
+goto = "NextScene"
+
+[1]
+cls = JSPGScene
+name = Scene2
+goto = "NextScene"
+
+[2]
+cls = JSPGScene
+name = Scene3
+type = title
+goto = "NextScene"
+
+[4]
+cls = JSPGScene
+name = Scene4
+type = dialog_left
+portrait = pic.jpg
+goto = "NextScene"
+
+[5]
+cls = JSPGScene
+name = Scene5
+goto = "NextScene"

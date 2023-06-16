@@ -1,0 +1,16 @@
+[0]
+cls = JSPGAction
+name = Action with multiline params
+tag = MyTag
+scene = CurrentScene
+icon = {text: 'A', class: 'icon-button-red'}
+goto =
+    \tFoo.Bar()
+    \treturn Foo.GetNextScene()
+condition =
+    \tif (Foo.Bar()) return true
+    \treturn Foo.CheckOtherCondition()
+exec =
+    \tPlayer.AddXP(1000)
+    \tPlayer.AddMoney(500)
+    \tGUI.UpdatePlayerInfo()

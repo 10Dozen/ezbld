@@ -1,0 +1,17 @@
+[0]
+cls = JSPGAction
+name = Action with multiline text
+type = scene_right
+tag = MyTag
+scene = CurrentScene
+goto = "Scene2"
+desc =
+    Block 1.
+    Line 1.
+    Line 2.
+
+    Block 2.
+    Line ${1}.
+    Line ${2}.
+
+    Line ${3}

@@ -1,0 +1,15 @@
+[0]
+cls = JSPGAction
+name = Detailed Action
+type = dialog_right
+portrait = mypic.jpg
+tag = MyTag
+scene = CurrentScene
+icon = {img: my_picture.jpg}
+condition = "Foo.Bar"
+exec =
+    \tlet foo = bar()
+    \tfoo.update(100)
+goto = "SceneAnother"
+
+desc = Some line of description.

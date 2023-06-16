@@ -1,0 +1,18 @@
+[0]
+cls = JSPGScene
+name = SceneWithUnsupportedParams
+type = title
+desc =
+    Desc line 1.
+
+    *
+
+    *portrait: picture.jpg
+
+    **
+
+    Desc line 5.
+
+    *Desc line 6.
+
+    **Desc line 7.

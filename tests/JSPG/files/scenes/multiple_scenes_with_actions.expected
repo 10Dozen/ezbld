@@ -1,0 +1,42 @@
+[0]
+cls = JSPGScene
+name = SceneOne
+desc = Description for SceneOne.
+
+[1]
+cls = JSPGAction
+name = Action One
+scene = SceneOne
+desc = Action one for SceneOne.
+
+[2]
+cls = JSPGAction
+name = Action Two
+scene = SceneOne
+desc = Action two for SceneOne.
+
+[3]
+cls = JSPGAction
+name = Action Three
+scene = SceneOne
+
+[4]
+cls = JSPGScene
+name = AnotherScene
+
+[5]
+cls = JSPGAction
+name = Action One
+scene = AnotherScene
+desc = Action one for AnotherScene.
+
+[6]
+cls = JSPGAction
+name = Action Two
+scene = AnotherScene
+desc = Action two for AnotherScene.
+
+[7]
+cls = JSPGAction
+name = Action Three
+scene = AnotherScene

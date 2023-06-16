@@ -1,0 +1,23 @@
+# CurrentScene
+
+Description line.
+
+@ Action 1 | dialog_left pic.jpg | MyTag1
+*goto: "NextScene"
+*exec: Foo.Bar()
+
+@ Action 2 | scene_right | MyTag2
+*goto: "NextScene"
+
+Description of action.
+
+@ Action 3 || MyTag3
+*goto: "NextScene"
+**condition:
+    Bar.Foo()
+
+@ Action 4 | scene_left
+
+It's over!
+
+It's literally over!

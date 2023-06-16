@@ -1,5 +1,6 @@
 import sys
 import json
+import configparser
 import pytest
 
 sys.path.append(r'F:\Workstation\QSP\AxmaProjects\v2\buildtool')
@@ -9,7 +10,7 @@ from processors.jspg import JSPGScene, JSPGAction, JSPGProcessor
 def pytest_configure(config):
     '''Adds custom pytest markers'''
     config.addinivalue_line(
-        "markers", "jspg_file(path): set path to JSPG file contetn reader"
+        "markers", "jspg_file(path): set path to JSPG file content reader"
     )
 
 @pytest.fixture
@@ -94,6 +95,16 @@ def code_output_formatter():
 
     return callback
 
+def read_jspg_file(file):
+    header = ''
+    content = []
+    with open(file, 'r', encoding='utf-8') as f:
+        header = f.readline()
+        content = f.readlines()
+
+    return header, content
+
+
 @pytest.fixture
 def jspg_content(request):
     '''Reads file content and return as directives line (header) and lines (content)
@@ -101,14 +112,7 @@ def jspg_content(request):
     path_to_file = request.node.get_closest_marker("jspg_file")
     if not path_to_file:
         return []
-
-    header = ''
-    content = []
-    with open(path_to_file.args[0], 'r', encoding='utf-8') as f:
-        header = f.readline()
-        content = f.readlines()
-
-    return header, content
+    return read_jspg_file(path_to_file.args[0])
 
 @pytest.fixture
 def jspg_parsed_content(jspg_content):
@@ -119,3 +123,45 @@ def jspg_parsed_content(jspg_content):
 
     parsed = processor(content)
     return [line for idx, line in enumerate(parsed) if idx % 2 == 0]
+
+@pytest.fixture
+def verifiable_jspg_content_parser():
+    def input_data_parser(jspg_file, verification_file):
+        header, content = read_jspg_file(jspg_file)
+        processor = JSPGProcessor.get_processor(header)
+        assert processor
+        parsed_jspg = [line for idx, line in enumerate(processor(content)) if idx % 2 == 0]
+
+        verification_entities = []
+        verification_cfg = configparser.ConfigParser()
+        verification_cfg.read(verification_file)
+        for section_name in verification_cfg.sections():
+            sec = dict(verification_cfg[section_name])
+            # To adjust multiline parameret - replace \t to 4 space indent
+            for key, val in sec.items():
+                sec[key] = val.replace(r'\t', '    ')
+
+            if sec.get('desc'):
+                desc = []
+                for block in sec['desc'].strip().split('\n\n'):
+                    lines = block.split('\n')
+                    desc.append(tuple(lines))
+
+                sec['desc'] = desc
+
+            cls_name = sec.get('cls')
+            cls = globals()[sec.get('cls')]
+
+            entity = None
+            if cls_name == 'JSPGScene':
+                entity = cls.get(sec.get('name'))
+            else:
+                entity = cls.get(sec.get('name'))
+
+            entity.update(sec)
+            verification_entities.append(cls.to_string(entity))
+
+        return parsed_jspg, verification_entities
+
+
+    return input_data_parser

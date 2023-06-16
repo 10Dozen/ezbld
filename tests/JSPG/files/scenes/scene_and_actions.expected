@@ -1,0 +1,16 @@
+[0]
+cls = JSPGScene
+name = SceneName
+desc = This is a scene.
+
+[1]
+cls = JSPGAction
+name = Action 1
+scene = SceneName
+desc = This is an first action for SceneName.
+
+[2]
+cls = JSPGAction
+name = Action 2
+scene = SceneName
+desc = This is an second action for SceneName.

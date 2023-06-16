@@ -1,0 +1,47 @@
+[0]
+cls = JSPGAction
+name = Action 1
+scene = CurrentScene
+type = dialog_right
+portrait = pic.jpg
+tag = MyTag
+goto = "NextScene"
+
+[1]
+cls = JSPGAction
+name = Action 2
+scene = CurrentScene
+goto = "NextScene"
+
+[2]
+cls = JSPGAction
+name = Action 3
+scene = CurrentScene
+type = scene
+goto = "NextScene"
+
+[3]
+cls = JSPGAction
+name = Action 4
+scene = CurrentScene
+tag = MyTag2
+goto = "NextScene"
+
+[4]
+cls = JSPGAction
+name = Action 5
+scene = CurrentScene
+goto = "NextScene"
+
+[5]
+cls = JSPGAction
+name = Action 6
+scene = CurrentScene
+type = 'scene_left'
+goto = "NextScene"
+
+[6]
+cls = JSPGAction
+name = Action 7
+scene = CurrentScene
+goto = "NextScene"

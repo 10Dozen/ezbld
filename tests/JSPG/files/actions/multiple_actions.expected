@@ -1,0 +1,17 @@
+[0]
+cls = JSPGAction
+name = Action One
+scene = SceneName
+desc = This is action one content.
+
+[1]
+cls = JSPGAction
+name = Action Two
+scene = SceneName
+desc = This is action two content.
+
+[2]
+cls = JSPGAction
+name = Action Three
+scene = SceneName
+desc = This is action three content.
