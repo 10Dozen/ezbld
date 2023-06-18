@@ -18,11 +18,12 @@ class Tokens(Enum):
     PARAM = '*'
     MULTILINE = '**'
     COMMENT = '//'
-    ACTION = '@ '
-    SCENE = '# '
+    ACTION = '@ '  # With whitespace!
+    SCENE = '# '   # With whitespace!
     SEPARATOR = '|'
-    DESCRIPTION = '.'
-    EMPTY = ''
+    # Values will never be used
+    DESCRIPTION = -1
+    EMPTY = 0
 
 
 def format_desc_block(buffer):
@@ -197,49 +198,39 @@ class JSPGAction:
 
 class JSPGParser:
     '''Class to parse JSPG lines into JSPG JS-objects'''
-    initial_mode = None
-    initial_params = None
+    SECTION_TOKEN = (Tokens.SCENE, Tokens.ACTION)
     SECTION_PARAM_TOKENS = (Tokens.PARAM, Tokens.MULTILINE)
     parent_scene_name = None
 
-    def __init__(self, mode: Modes, params):
-        self.initial_mode = mode
-        self.initial_params = params
+    def __init__(self, lines: list):
+        self.lines = lines
 
-    def parse(self, lines: list):
+    def parse(self):
         '''Parses given list of lines and returns JS-compatible code'''
 
         # Scan for sections (scene or action definitions)
-        sections = [{
-            'start_at': 0,
-            'end_at': -1,
-            'mode': self.initial_mode,
-            'params': self.initial_params
-        }]
+        sections = []
+        eof_idx = len(self.lines)
+        for idx, line in enumerate(self.lines):
+            token, mode, params = self.get_section_tokens(line)
+            logging.debug('Line %s: [%s] -> token: %s, mode: %s, params: %s',
+                          idx, line, token, mode, params)
 
-        for idx, line in enumerate(lines):
-            token, params = self.get_section_tokens(line)
-
-            if token == Tokens.ACTION and params:
-                sections[-1]['end_at'] = idx
-                sections.append({
-                    'start_at': idx + 1,
-                    'end_at': -1,
-                    'mode': Modes.ACTION,
-                    'params': params
-                })
-            elif token == Tokens.SCENE and params:
-                sections[-1]['end_at'] = idx
-                sections.append({
-                    'start_at': idx + 1,
-                    'end_at': -1,
-                    'mode': Modes.SCENE,
-                    'params': params
-                })
-            else:
+            if token not in self.SECTION_TOKEN or not params:
+                logging.debug('No token. Skip line...')
                 continue
 
-        sections[-1]['end_at'] = len(lines)
+            if sections:
+                logging.debug('End of previous section is set to %s', idx)
+                sections[-1]['end_at'] = idx
+
+            sections.append({
+                'start_at': idx + 1,
+                'end_at': eof_idx,
+                'mode': mode,
+                'params': params
+            })
+            logging.debug('Adding section: %s', sections[-1])
 
         logging.debug('Found %s section(s)', len(sections))
         logging.debug(sections)
@@ -250,7 +241,7 @@ class JSPGParser:
         parsed_content = []
         for idx, section in enumerate(sections):
             logging.debug('Parsing section %s: %s', idx, section)
-            section_lines = lines[section.get('start_at'):section.get('end_at')]
+            section_lines = self.lines[section.get('start_at'):section.get('end_at')]
 
             logging.debug('            there are %s line(s) in section', len(section_lines))
             parsed_section = self.parse_section(section['mode'], section['params'], section_lines)
@@ -263,28 +254,30 @@ class JSPGParser:
         return parsed_content
 
     @staticmethod
-    def get_section_tokens(line: list):
+    def get_section_tokens(line: str):
         '''Checks for section definition and returns token and parameters of the found section'''
         line = line.strip()
         token = None
+        mode = None
         if line.startswith(Tokens.SCENE.value):
             token = Tokens.SCENE
+            mode = Modes.SCENE
         elif line.startswith(Tokens.ACTION.value):
             token = Tokens.ACTION
+            mode = Modes.ACTION
         else:
-            return (None, None)
+            return (None, None, None)
 
-        return (
-            token,
-            line[1:].strip().split(Tokens.SEPARATOR.value)
-        )
+        params = [p.strip() for p in line[1:].split(Tokens.SEPARATOR.value)]
+        return (token, mode, params)
 
-    def parse_section(self, mode: Modes, params, lines: list):
+    def parse_section(self, mode: Modes, params: list, lines: list):
         '''Parses single JSPG section'''
 
         # Select callable depending on mode
         entity_cls = JSPGScene if mode == Modes.SCENE else JSPGAction
-        entity = entity_cls.get(*params)
+        entity_params = self.parse_section_params(entity_cls, params)
+        entity = entity_cls.get(*entity_params)
 
         # Save scene name and re-use on following action parsing
         if mode == Modes.SCENE:
@@ -379,6 +372,32 @@ class JSPGParser:
         return entity_cls.to_string(entity)
 
     @staticmethod
+    def parse_section_params(entity_cls, params: list):
+        '''Parses section params into type specific list of params for Entity.get() function'''
+
+        # Name param
+        section_params = [params[0]]
+        if len(params) == 1:
+            return section_params
+
+        # Blobs default type param and optional portrait param
+        # (last may be filename with whitespace)
+        entity_type_subparams = [p.strip() for p in params[1].split(' ', 1)]
+        section_params.append(entity_type_subparams[0])
+        section_params.append(
+            entity_type_subparams[1]
+            if len(entity_type_subparams) > 1 else
+            None
+        )
+
+        # Entity specific params
+        if entity_cls == JSPGAction:
+            # Action -> Tag
+            section_params.append(params[2] if len(params) == 3 else None)
+
+        return section_params
+
+    @staticmethod
     def get_inline_tokens(line: list):
         '''Read line and return apropriate token and possible parameters'''
         line = line.strip()
@@ -405,68 +424,40 @@ class JSPGParser:
 
 
 # Processor functions
-def jspg_proc_parse_scene(name: str, type_param: str = None):
-    '''Returns processor function to parse JSPG Scene'''
-    name = name.strip()
-    scene_type = None
-    portrait = None
+def jspg_parser_processor(header: str):
+    '''Return processor to parse JSPG content'''
 
-    if type_param:
-        nested = type_param.split()
-        scene_type = nested[0].strip()
-        portrait = nested[1].strip() if len(nested) > 1 else None
+    def parse_jspg_lines(lines: list):
+        '''Converts given JSPG lines into valid JS data'''
+        return JSPGParser((header, *lines)).parse()
 
-    def JSPG_Parse_scene(lines: list):
-        parser = JSPGParser(mode=Modes.SCENE, params=(name, scene_type, portrait))
-        return parser.parse(lines)
+    return parse_jspg_lines
 
-    return JSPG_Parse_scene
-
-def jspg_proc_parse_action(name: str, type_param: str = None, tag: str = None):
-    '''Returns processor function to parse JSPG Action'''
-    name = name.strip()
-    scene_type = None
-    portrait = None
-
-    if type_param:
-        nested = type_param.split()
-        scene_type = nested[0].strip()
-        portrait = nested[1].strip() if len(nested) > 1 else None
-
-    if tag:
-        tag = tag.strip()
-
-    def JSPG_Parse_action(lines: str):
-        parser = JSPGParser(mode=Modes.ACTION, params=(name, scene_type, portrait, tag))
-        return parser.parse(lines)
-
-    return JSPG_Parse_action
-
-def jspg_js_fake_named_parameters(params):
+def jspg_js_fake_named_parameters(_):
     '''Returns processor function to remove JS faked named params'''
-    def JSPG_JS_Fake_named_parameters(lines: list):
+
+    def process_fake_named_parameters(lines: list):
+        '''Searchs and comments fakked named params in given lines'''
         pattern = re.compile(r'\*([a-zA-Z0-9_]+)=', re.MULTILINE)
         replace_by = r'/*\1*/ '
         lines[:] = [pattern.sub(replace_by, line) for line in lines]
 
         return lines
 
-    return JSPG_JS_Fake_named_parameters
+    return process_fake_named_parameters
 
 class JSPGProcessor(ProcessorInterface):
     '''Provide access to JSPG processors'''
-    separator = '|'
     processors = {
         '$js_fake_named_params': (jspg_js_fake_named_parameters, None),
-        Tokens.SCENE.value: (jspg_proc_parse_scene, ' '),
-        Tokens.ACTION.value: (jspg_proc_parse_action, ' ')
+        Tokens.SCENE.value: (jspg_parser_processor, True),
+        Tokens.ACTION.value: (jspg_parser_processor, True)
     }
 
     @staticmethod
     def get_definitions():
         '''Returns list of processor directives definitions'''
         return list(JSPGProcessor.processors.keys())
-
 
     @staticmethod
     def get_processor(instruction: str):
@@ -477,14 +468,20 @@ class JSPGProcessor(ProcessorInterface):
         logging.debug("Instruction params: %s", params)
         instruction_type_param = params[0]
 
-        for token in list(JSPGProcessor.processors.keys()):
-            if instruction_type_param.startswith(token):
-                processor, sep = JSPGProcessor.processors.get(token)
-                if sep:
-                    params[0] = sep.join(instruction_type_param.split(sep)[1:])
-                logging.debug('Token: %s', token)
-                logging.debug('Param: %s', params)
-                return processor(*params)
+        for token, processor_defines in JSPGProcessor.processors.items():
+            if not instruction_type_param.startswith(token):
+                continue
+
+            processor, instruction_is_parsable = processor_defines
+
+            # In case when file starts with JSPGScene/Action section
+            # -> return first line as a parameter for futher parsing
+            if instruction_is_parsable:
+                params = instruction
+
+            logging.debug('Token: %s', token)
+            logging.debug('Param: %s', params)
+            return processor(params)
 
         return None
 

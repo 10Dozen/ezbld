@@ -20,17 +20,16 @@ class TestJSPGProcessor:
 
         processor = JSPGProcessor.get_processor(header)
         assert processor
-        assert processor.__name__ == 'JSPG_Parse_scene'
+        assert processor.__name__ == 'parse_jspg_lines'
+
         scene_data = processor(content)
+        assert scene_data
 
         entity = JSPGScene.get('SceneSimple')
-        entity['desc'] = [
-            ["Some simple scene without properties."]
-        ]
-
+        entity['desc'] = [("Some simple scene without properties.", )]
         expected_exported = JSPGScene.to_string(entity)
-        print_comparison(expected_exported, scene_data[0])
 
+        print_comparison(expected_exported, scene_data[0])
         assert scene_data[0] == expected_exported
 
     @pytest.mark.jspg_file(r'tests\JSPG\files\actions\simple_action.jspg')
@@ -39,14 +38,15 @@ class TestJSPGProcessor:
 
         processor = JSPGProcessor.get_processor(header)
         assert processor
-        assert processor.__name__ == 'JSPG_Parse_action'
+        assert processor.__name__ == 'parse_jspg_lines'
 
         scene_data = processor(content)
+        assert scene_data
 
         entity = JSPGAction.get('Simple action')
         entity['scene'] = 'SceneSimple'
-
         expected_exported = JSPGAction.to_string(entity)
+
         print_comparison(expected_exported, scene_data[0])
         assert scene_data[0] == expected_exported
 
@@ -144,10 +144,11 @@ class TestJSPGProcessor:
     ])
     def test_parse_jspg(self, jspg_file, expected_file, verifiable_jspg_content_parser):
         parsed_files = verifiable_jspg_content_parser(jspg_file, expected_file)
-        assert parsed_files and len(parsed_files) > 1
+        assert len(parsed_files) > 1
 
         parsed_entities, verification_entities = parsed_files
+        assert parsed_entities
+        assert verification_entities
         for parsed, expected in zip(parsed_entities, verification_entities):
             print_comparison(expected, parsed)
             assert parsed == expected
-

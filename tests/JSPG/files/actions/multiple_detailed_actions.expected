@@ -37,7 +37,7 @@ goto = "NextScene"
 cls = JSPGAction
 name = Action 6
 scene = CurrentScene
-type = 'scene_left'
+type = scene_left
 goto = "NextScene"
 
 [6]

@@ -8,7 +8,6 @@ import logging
 from importlib import import_module
 from datetime import datetime
 from enum import Enum
-from typing import Tuple
 
 BUILD_SETTINGS = 'settings.ini'
 DEFAULT_LOG_LEVEL = logging.INFO
@@ -112,7 +111,7 @@ def process_file(filename: str, processor_name: str) -> str:
         # If any non-empty line without instruction met
         # stop checking and consider that instuction block is over
         defines = get_processor_definitions(processor_name)
-        for i, line in enumerate(src_file):
+        for line in src_file:
             if not line:
                 continue
 
@@ -146,7 +145,7 @@ def process_file(filename: str, processor_name: str) -> str:
 
     return ''.join(content)
 
-def source_files_generator(source_dir: str, files: list) -> Tuple[str, SourceFilesMarkup]:
+def source_files_generator(source_dir: str, files: list): # -> Tuple[str, SourceFilesMarkup]
     '''Reads through given list of files and generates
        path to file and type of entry (file, inline string or invalid)
     '''
@@ -385,7 +384,7 @@ def setup_logger(settings: configparser.ConfigParser, version: str):
 
     logging.basicConfig(
         filename=output_file,
-        encoding='utf-8',
+        # encoding='utf-8',  # not working with Py3.4
         level=level,
         format=log_entry_format
     )
