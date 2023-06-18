@@ -2,16 +2,14 @@
 import re
 import logging
 from enum import Enum
+from dataclasses import dataclass
 from ezbld import ProcessorInterface
-
-JS_INTERPOLATION_PATTERN = re.compile(r'(\${.+})')
 
 
 class Modes(Enum):
     '''Possible modes of parser'''
     SCENE = 1
     ACTION = 2
-
 
 class Tokens(Enum):
     '''Tokens to be recognized by parser and processor'''
@@ -25,83 +23,77 @@ class Tokens(Enum):
     DESCRIPTION = -1
     EMPTY = 0
 
+class TypeTokens(Enum):
+    '''Shortcut tokens for entity type definition'''
+    SCENE = '<'
+    SCENE_RIGHT = '>'
+    DIALOG = '<#'
+    DIALOG_RIGHT = '#>'
+    TITLE = 'T'
+    SUBTITLE = 'ST'
+    CONTAINER = 'C'
+    HIDDEN = 'HID'
 
-def format_desc_block(buffer):
-    '''Looks through description buffer lines and apply JS interpolation rules for it
-    '''
-    # Empty buffer -> empty string
-    if not buffer:
-        logging.debug('Empty buffer. Exit...')
-        return ''
+    @staticmethod
+    def match(value):
+        '''Return TypeToken entity that match given value.'''
+        return TypeTokens._value2member_map_.get(value)
 
-    # Oneline buffer -> format inline interpolation
-    if len(buffer) == 1:
-        logging.debug('Oneliner. Search for pattern')
-        line = buffer[0]
-        if JS_INTERPOLATION_PATTERN.search(line):
-            logging.debug('JS interpolation found. Going to wrap line with `.')
-            line = '`%s`' % line
-        line = '        "%s"' % line
-
-        return line
-
-    # Multiline buffer -> format multiline interpolation
-    logging.debug('Multiline. Search for pattern')
-    lines = []
-    for line in buffer:
-        logging.debug('Line: |%s|', line)
-        logging.debug('Found: %s', JS_INTERPOLATION_PATTERN.search(line))
-        if JS_INTERPOLATION_PATTERN.search(line):
-            line = JS_INTERPOLATION_PATTERN.sub(r'\\\1', line)
-        lines.append('%s' % line)
-
-    logging.debug('Buffer lines:\n%s', buffer)
-    logging.debug('Result lines:\n%s', lines)
-    logging.debug('Lines unchanged?: %s', tuple(lines) == buffer)
-
-    lines[0] = '%s%s' % ('        `' if tuple(lines) == buffer else '        `>>> ', lines[0])
-    lines[-1] = '%s`' % lines[-1]
-
-    return '\n        '.join(lines)
+class ParamTypes(Enum):
+    '''Type of parameter value. Used as hint during export to JS'''
+    TEXT = 0
+    MULTILINE_TEXT = 1
+    VARIABLE = 20
+    FUNCTION = 30
+    MULTILINE_FUNCTION = 31
+    OBJECT = 40
 
 
 def format_export_line(entity, key: str, export_key: str = None, ending_comma=True):
-    '''Formats JSPG entity paramaeter to JS object'''
+    '''Formats JSPG entity parameter to JS object syntax'''
+    param = entity.get(key)
+    if not param:
+        # 'desc' is mandatory param for JSPG, so it should always be formatted
+        return '    "desc": []' if key == 'desc' else ''
+
     if not export_key:
         export_key = key
+    logging.debug('Exporting key=%s to export key=%s', key, export_key)
+    logging.debug('   Exporting param: %s', param)
 
     formatted = None
     if key == 'desc':
-        if entity.get(key):
-            lines = []
-            for buffer in entity.get(key):
-                lines.append(format_desc_block(buffer))
-            formatted = '    "desc": [\n%s\n    ]' % (',\n'.join(lines))
-        else:
-            formatted = '    "desc": []'
-    elif key == 'icon':
-        formatted = '    "icon": %s' % entity.get(key) if entity.get(key) else ''
-
-    elif key in ('condition', 'exec', 'pre_exec', 'post_exec', 'goto'):
-        # Wrap code field with lambda function markup
-        content = entity.get(key)
-        if not content:
-            return ''
-
-        if not ((content.startswith('"') and content.endswith('"'))
-           or (content.startswith("'") and content.endswith("'"))):
-            content = '\n'.join(['        %s' % c for c in content.splitlines()])
-            content = '() => {\n%s\n    }' % content
-
-        formatted = '    "%s": %s' % (export_key, content)
-
+        # Desc is a collection of params representing one blob.
+        logging.debug('      Exporting descriptions')
+        lines = []
+        for blob in param:
+            if blob.type == ParamTypes.MULTILINE_TEXT:
+                lines.append('\n'.join(['        %s' % l for l in blob.value]))
+            else:
+                lines.append('        %s' % blob.value)
+        formatted = '    "desc": [\n%s\n    ]' % (',\n'.join(lines))
     else:
-        formatted = '    "%s": "%s"' % (export_key, entity.get(key)) if entity.get(key) else ''
+        logging.debug('      Exporting other parameters')
+        if param.type == ParamTypes.TEXT:
+            formatted = '    "%s": "%s"' % (export_key, param.value)
+        elif param.type == ParamTypes.MULTILINE_FUNCTION:
+            formatted = '    "%s": %s' % (
+                export_key,
+                '\n    '.join(['%s' % l for l in param.value])
+            )
+        else:
+            formatted = '    "%s": %s' % (export_key, param.value)
 
     if formatted and ending_comma:
         formatted = '%s,' % formatted
 
     return formatted
+
+@dataclass
+class JSPGParam:
+    '''Represents single param value of JSPG Entity'''
+    value: str
+    type: ParamTypes = ParamTypes.TEXT
 
 
 class JSPGScene:
@@ -113,7 +105,7 @@ class JSPGScene:
     )
 
     @staticmethod
-    def get(name: str, entity_type: str = None, portrait: str = None):
+    def get(name: JSPGParam, entity_type: JSPGParam = None, portrait: JSPGParam = None):
         '''Returns pre-configured dict of JSPG Scene entity'''
         return {
             'name': name,
@@ -129,8 +121,7 @@ class JSPGScene:
     def to_string(entity: dict):
         '''Converts given dict to formatted JSPG Scene entity'''
         lines = []
-        lines.append('Scenes["%s"] = {' % entity.get('name'))
-
+        lines.append('Scenes["%s"] = {' % entity['name'].value)
         lines.append(format_export_line(entity, 'type'))
         lines.append(format_export_line(entity, 'portrait'))
         lines.append(format_export_line(entity, 'pre_exec'))
@@ -154,7 +145,7 @@ class JSPGAction:
     )
 
     @staticmethod
-    def get(name: str, entity_type: str = None, portrait: str = None, tag: str = None):
+    def get(name: JSPGParam, entity_type: JSPGParam = None, portrait: JSPGParam = None, tag: JSPGParam = None):
         '''Returns pre-configured dict of JSPG Action entity'''
         return {
             'name': name,
@@ -180,8 +171,7 @@ class JSPGAction:
             raise exception
 
         lines = []
-        lines.append('Scenes["%s"]["actions"].push({' % entity.get('scene'))
-
+        lines.append('Scenes["%s"]["actions"].push({' % entity['scene'].value)
         lines.append(format_export_line(entity, 'name'))
         lines.append(format_export_line(entity, 'tag'))
         lines.append(format_export_line(entity, 'type'))
@@ -198,8 +188,9 @@ class JSPGAction:
 
 class JSPGParser:
     '''Class to parse JSPG lines into JSPG JS-objects'''
-    SECTION_TOKEN = (Tokens.SCENE, Tokens.ACTION)
     SECTION_PARAM_TOKENS = (Tokens.PARAM, Tokens.MULTILINE)
+    JS_INTERPOLATION_PATTERN = re.compile(r'(\${.+})')
+    MULTILINE_CODE_PARAMS = ("goto", "pre_exec", "post_exec", "condition", "exec")
     parent_scene_name = None
 
     def __init__(self, lines: list):
@@ -216,7 +207,7 @@ class JSPGParser:
             logging.debug('Line %s: [%s] -> token: %s, mode: %s, params: %s',
                           idx, line, token, mode, params)
 
-            if token not in self.SECTION_TOKEN or not params:
+            if not token or not params:
                 logging.debug('No token. Skip line...')
                 continue
 
@@ -282,7 +273,7 @@ class JSPGParser:
         # Save scene name and re-use on following action parsing
         if mode == Modes.SCENE:
             self.parent_scene_name = entity['name']
-            logging.debug('Saved scene name for futher user => %s', self.parent_scene_name)
+            logging.debug('Save scene name for futher user => %s', self.parent_scene_name)
         else:
             logging.debug('Setting default *scene => %s', self.parent_scene_name)
             entity['scene'] = self.parent_scene_name
@@ -303,7 +294,10 @@ class JSPGParser:
                     logging.debug('Saving multiline param:\n%s', multiline_param_value)
                     # Save only if there is line with content
                     if any(l.strip('\n ') for l in multiline_param_value):
-                        entity[multiline_param_name] = '\n'.join(multiline_param_value)
+                        entity[multiline_param_name] = self.parse_param(
+                            multiline_param_value,
+                            multiline_param_name
+                        )
 
                     multiline_param_name = None
                     multiline_param_value.clear()
@@ -329,7 +323,7 @@ class JSPGParser:
                     continue
 
                 if token == Tokens.PARAM:
-                    entity[param_name] = param_value
+                    entity[param_name] = self.parse_param(param_value, param_name)
                 else:
                     multiline_param_name = param_name
                     multiline_param_value.append(param_value)
@@ -345,7 +339,9 @@ class JSPGParser:
             elif token == Tokens.EMPTY:
                 # Gather data to description field
                 if desc_buffer:
-                    entity['desc'].append(tuple(desc_buffer))
+                    entity['desc'].append(
+                        self.parse_param(desc_buffer.copy(), 'desc')
+                    )
                     desc_buffer.clear()
 
             elif token == Tokens.DESCRIPTION:
@@ -358,34 +354,52 @@ class JSPGParser:
 
         # Finalize multiline data gathering
         if multiline_param_name:
-            entity[multiline_param_name] = '\n'.join(multiline_param_value)
+            entity[multiline_param_name] = self.parse_param(
+                multiline_param_value,
+                multiline_param_name
+            )
         if desc_buffer:
-            entity['desc'].append(tuple(desc_buffer))
+            entity['desc'].append(
+                self.parse_param(desc_buffer.copy(), 'desc')
+            )
 
         multiline_param_value.clear()
         desc_buffer.clear()
 
         logging.debug('Entity:\n%s', entity)
-        logging.debug('Entity class: %s', entity_cls)
-        logging.debug(entity_cls.to_string(entity))
+        logging.debug('Exporting entity class: %s', entity_cls)
 
-        return entity_cls.to_string(entity)
+        exported = entity_cls.to_string(entity)
+        logging.debug(exported)
+        return exported
 
-    @staticmethod
-    def parse_section_params(entity_cls, params: list):
+    def parse_section_params(self, entity_cls, params: list):
         '''Parses section params into type specific list of params for Entity.get() function'''
 
         # Name param
-        section_params = [params[0]]
+        section_params = [
+            self.parse_param(value=params[0], param_name='name')
+        ]
+
         if len(params) == 1:
             return section_params
 
-        # Blobs default type param and optional portrait param
-        # (last may be filename with whitespace)
+        # Type + optional portrait params
         entity_type_subparams = [p.strip() for p in params[1].split(' ', 1)]
-        section_params.append(entity_type_subparams[0])
+        entity_type = entity_type_subparams[0]
+
+        # --- Replace type shortcut with full name
+        entity_type_token = TypeTokens.match(entity_type)
+        if entity_type_token:
+            entity_type = entity_type_token.name.lower()
+
         section_params.append(
-            entity_type_subparams[1]
+            self.parse_param(value=entity_type, param_name='type')
+        )
+
+        # --- Check for portrait param or append None
+        section_params.append(
+            self.parse_param(value=entity_type_subparams[1], param_name='portrait')
             if len(entity_type_subparams) > 1 else
             None
         )
@@ -393,7 +407,11 @@ class JSPGParser:
         # Entity specific params
         if entity_cls == JSPGAction:
             # Action -> Tag
-            section_params.append(params[2] if len(params) == 3 else None)
+            section_params.append(
+                self.parse_param(value=params[2], param_name='tag')
+                if len(params) == 3
+                else None
+            )
 
         return section_params
 
@@ -421,6 +439,102 @@ class JSPGParser:
             token_type,
             [par.strip() for par in line[offset_idx:].split(':', 1) if par.strip()]
         )
+
+    def parse_param(self, value, param_name: str = None) -> JSPGParam:
+        '''Assign ParamType to given param, depending of it's format'''
+
+        logging.debug('Parsing param: %s = %s', param_name, value)
+
+        param_type = None
+        param_value = None
+
+        if param_name == 'desc':
+            logging.debug("Description buffer")
+            lines_count = len([l for l in value if l])
+            if lines_count == 1:
+                param_type = ParamTypes.TEXT
+                param_value = self.wrap_description_line(value[0])
+            elif lines_count > 1:
+                param_type = ParamTypes.MULTILINE_TEXT
+                param_value = self.wrap_multiline_description(value)
+            else:
+                return None
+
+            logging.debug('Description value (type: %s):\n%s', type(value), value)
+
+            return JSPGParam(type=param_type, value=param_value)
+
+        if isinstance(value, list):
+            logging.debug("Multiline param")
+            # Multiline case
+            if not param_name:
+                raise ValueError("Method called for unnamed multiline param! Value: %s" % value)
+
+            if param_name in self.MULTILINE_CODE_PARAMS:
+                param_type = ParamTypes.MULTILINE_FUNCTION
+                param_value = self.wrap_multiline_function(value)
+        else:
+            logging.debug("Inline param")
+            # Single line case
+            if value.startswith("`") and value.endswith("`"):
+                param_type = ParamTypes.VARIABLE
+                param_value = value[1:-1]
+            elif value.startswith("{") and value.endswith("}"):
+                param_type = ParamTypes.FUNCTION
+                param_value = '()=>%s' % value
+            elif value.startswith("(") and value.endswith(")"):
+                param_type = ParamTypes.OBJECT
+                param_value = '{%s}' % value[1:-1]
+            else:
+                param_type = ParamTypes.TEXT
+                param_value = value
+
+        logging.debug("Creating JSPGParam: type=%s, value=%s", param_type, param_value)
+        if not param_type:
+            raise ValueError('Param type is not recognized!')
+
+        return JSPGParam(type=param_type, value=param_value)
+
+    def wrap_multiline_function(self, lines):
+        '''Wraps multiline code lines into JS arrow function syntax'''
+        return [
+            '()=>{',
+            *lines,
+            '}'
+        ]
+
+    def wrap_description_line(self, line):
+        '''Checks for interpolation syntax and wraps line with ``
+           to mark line as interpolation-required for JSPG'''
+        if not line:
+            return
+
+        if self.JS_INTERPOLATION_PATTERN.search(line):
+            logging.debug('JS interpolation found. Going to wrap line with `.')
+            line = '`%s`' % line
+        return '"%s"' % line
+
+    def wrap_multiline_description(self, buffer):
+        '''Checks for interpolation syntax inside multilple lines
+           and wraps whole block with `>>> ... ` to mark multiline
+           as interpolation-required for JSPG or with `` to make it
+           native JavaScript multiline string'''
+        if not buffer:
+            return
+
+        lines = [
+            '%s<br>' % (
+                self.JS_INTERPOLATION_PATTERN.sub(r'\\\1', line)
+                if self.JS_INTERPOLATION_PATTERN.search(line) else
+                line
+            ) for line in buffer
+        ]
+
+        logging.debug('Lines unchanged?: %s', lines == buffer)
+        lines[0] = '%s%s' % ('`' if lines == buffer else '`>>> ', lines[0])
+        lines[-1] = '%s`' % lines[-1]
+
+        return lines
 
 
 # Processor functions
