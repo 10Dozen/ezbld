@@ -20,7 +20,7 @@ Small tool for files composition.
     - [Custom processor](#processors.custom)
 
 
-Tool helps compose groupd of files into single file keeping given order of content. Files may also be processed by custom processor before merging.
+Tool helps compose group of files into single file keeping given order of content. Files may also be processed by custom processor before merging.
 
 ## Settings file (settings.ini) <a name='settings'></a>
 
@@ -52,19 +52,13 @@ File content:
         - Lines in format `>>'Text in single quotes'` will be directly added to artifact.
 
 ## Processors <a name='processors'></a>
-File content may be modified before addition by text processor specified in the artifacts build config. To mark file as processible - add an processor instruction line in the beggining of the file and specify `processor` parameter at artifact build config with name from `Processors` section of settings file.
+File content may be modified before addition by text processor specified in the artifacts build config. To mark file as processible - add an processor instruction line in the beggining of the file and specify `processor` parameter at artifact build config with the name from `Processors` section of settings file.
 
-Instruction format:
-`(Prefix)(Instruction):(Param1):(Param2):...:(ParamN)`
-
-where,
-- `(Prefix)` -- processor specified prefix of the processor instruction
-- `(Instruction)` -- name of the instruction to apply to file.
-- `(ParamN)` -- parameters of instruction
-
-To skip param place `:` right after previous `:` symbol (e.g. `prefixInstuction::param`)
 
 ### JavaScript processor <a name='processors.js'></a>
+
+Processor to wrap JS code into closures/functions or mappings.
+
 ##### Instruction prefix:
 `//@`
 ##### Instructions
@@ -151,10 +145,10 @@ To add custom processor one need to:
 - create new `.py` file
     - import `from ezbld import ProcessorInterface`
     - inherit a class from `ProcessorInterface` and implement methods:
-        - `get_definitions()` should return list of supported instructions (with prefix) to search in source file (e.g. prefix is `#` and supported instuctions are (`add_indent`, `remove_indent`), then function should return list `['#add_indent', '#remove_indent']`)
-        - `get_processor(instruction: str)` should return processor function based on given instruction line found in source file
-    - create a processor function(s) with `func(lines: list) -> list` signature, where `lines` is a list of lines of the source file (except instuction line). Function must return list of processed lines
-    - implement function `get() -> ProcessorInterface` which returns processor class
+        - `check_for_instruction(self, line: str) -> bool` - checks passed line for processor's instruction, save instruction in processor's pool and return True if valid instruction found, or False if not.
+		- `has_instructions(self) -> bool` - returns True if there is any instruction saved in the processor's internal instuctions pool.
+		- `process(self, content: list) -> list` - processes given lines according to processor's internal instructions pool.
+    - implement separate function `get() -> ProcessorInterface` which returns processor class
 
 To use custom processor:
 - add processor to settings file (`settings.ini`) to `[Processors]` section under unique name and value in format `package.modulename` (e.g. `processors\js.py` -> `processors.js`)
