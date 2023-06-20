@@ -48,6 +48,18 @@ class TestJSPGParser:
         print_comparison(expected_exported, parsed_data[0])
         assert parsed_data[0] == expected_exported
 
+    @pytest.mark.parametrize("input_lines", [
+        '# Scene | scene\n',
+        '# Scene | dialog\n',
+        '# Scene | dialog | my_tag\n',
+        '# Scene | dialog_left\n',
+        '# Scene | dialog_right | MyTag\n'
+
+    ])
+    def test_parse_errors(self, input_lines):
+        with pytest.raises(ValueError):
+            JSPGParser((input_lines, )).parse()
+
     @pytest.mark.parametrize("jspg_file,expected_file", test_data_for_parse_jspg,
                              ids=test_ids_for_parse_jspg)
     def test_parse_jspg(self, jspg_file, expected_file, verifiable_jspg_content_parser):

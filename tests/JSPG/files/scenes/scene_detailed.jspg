@@ -1,4 +1,4 @@
-# DetailedScene | dialog my_character.jpg
+# DetailedScene | dialog_left my_character.jpg
 
 *pre_exec: { MyGame.ExecutePre() }
 *post_exec: { MyGame.ExecutePost() }

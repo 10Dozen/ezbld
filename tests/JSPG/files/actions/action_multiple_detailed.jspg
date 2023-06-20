@@ -6,7 +6,7 @@
 *scene: CurrentScene
 *goto: NextScene
 
-@ Action 3 | scene
+@ Action 3 | scene_left
 *scene: CurrentScene
 *goto: NextScene
 

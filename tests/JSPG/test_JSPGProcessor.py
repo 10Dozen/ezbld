@@ -207,6 +207,3 @@ class TestJSPGProcessor:
             assert processor.has_instructions()
 
         assert processor.instructions == expected
-
-    # TODO:
-    # - Test each processor on basic data

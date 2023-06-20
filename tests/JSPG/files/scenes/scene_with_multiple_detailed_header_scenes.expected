@@ -1,7 +1,7 @@
 [0]
 cls = JSPGScene
 name = Scene1 | TEXT
-type = scene | TEXT
+type = scene_left | TEXT
 goto = NextScene | TEXT
 
 [1]

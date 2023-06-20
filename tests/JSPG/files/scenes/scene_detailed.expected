@@ -1,7 +1,7 @@
 [0]
 cls = JSPGScene
 name = DetailedScene | TEXT
-type = dialog | TEXT
+type = dialog_left | TEXT
 portrait = my_character.jpg | TEXT
 pre_exec = ()=>{ MyGame.ExecutePre() } | FUNCTION
 post_exec = ()=>{ MyGame.ExecutePost() } | FUNCTION

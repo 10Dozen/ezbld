@@ -391,21 +391,34 @@ class JSPGParser:
         entity_type_subparams = [p.strip() for p in params[1].split(' ', 1)]
         entity_type = entity_type_subparams[0] if entity_type_subparams[0] else None
 
-        # --- Replace type shortcut with full name
+        # --- Replace type shortcut with full name and validate type
         entity_type_token = TypeTokens.match(entity_type)
         if entity_type_token:
             entity_type = entity_type_token.name.lower()
+        else:
+            if entity_type and not entity_type.upper() in TypeTokens.__members__.keys():
+                raise ValueError(
+                    'Invalid entity\'s type parameter. '
+                    '"%s" is not allowed! Use one of: %s' % (
+                        entity_type,
+                        TypeTokens.__members__.keys()
+                    ))
 
         section_params.append(
             self.parse_param(value=entity_type, param_name='type')
         )
 
         # --- Check for portrait param or append None
-        section_params.append(
-            self.parse_param(value=entity_type_subparams[1], param_name='portrait')
-            if len(entity_type_subparams) > 1 else
-            None
-        )
+        portrait_param = (self.parse_param(value=entity_type_subparams[1], param_name='portrait')
+                          if len(entity_type_subparams) > 1 else
+                          None)
+
+        if (entity_type
+            and entity_type.upper() in (TypeTokens.DIALOG_LEFT.name, TypeTokens.DIALOG_RIGHT.name)
+            and not portrait_param):
+            raise ValueError('Portrait is required for Dialog type entity!')
+
+        section_params.append(portrait_param)
 
         # Entity specific params
         if entity_cls == JSPGAction:
