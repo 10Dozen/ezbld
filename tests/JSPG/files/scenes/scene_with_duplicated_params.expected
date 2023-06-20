@@ -1,8 +1,8 @@
 [0]
 cls = JSPGScene
-name = SceenWithDuplicatedParams
-goto = "Scene1"
+name = SceenWithDuplicatedParams | TEXT
+goto = Scene1 | TEXT
 desc =
-    Some line.
+    "Some line."
 
-    Some line again.
+    "Some line again."

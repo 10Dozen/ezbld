@@ -25,9 +25,9 @@ class Tokens(Enum):
 
 class TypeTokens(Enum):
     '''Shortcut tokens for entity type definition'''
-    SCENE = '<'
+    SCENE_LEFT = '<'
     SCENE_RIGHT = '>'
-    DIALOG = '<#'
+    DIALOG_LEFT = '<#'
     DIALOG_RIGHT = '#>'
     TITLE = 'T'
     SUBTITLE = 'ST'
@@ -42,7 +42,8 @@ class TypeTokens(Enum):
 class ParamTypes(Enum):
     '''Type of parameter value. Used as hint during export to JS'''
     TEXT = 0
-    MULTILINE_TEXT = 1
+    QUOTED_TEXT = 1
+    MULTILINE_TEXT = 2
     VARIABLE = 20
     FUNCTION = 30
     MULTILINE_FUNCTION = 31
@@ -54,7 +55,7 @@ def format_export_line(entity, key: str, export_key: str = None, ending_comma=Tr
     param = entity.get(key)
     if not param:
         # 'desc' is mandatory param for JSPG, so it should always be formatted
-        return '    "desc": []' if key == 'desc' else ''
+        return '    "desc": [],' if key == 'desc' else ''
 
     if not export_key:
         export_key = key
@@ -191,10 +192,10 @@ class JSPGParser:
     SECTION_PARAM_TOKENS = (Tokens.PARAM, Tokens.MULTILINE)
     JS_INTERPOLATION_PATTERN = re.compile(r'(\${.+})')
     MULTILINE_CODE_PARAMS = ("goto", "pre_exec", "post_exec", "condition", "exec")
-    parent_scene_name = None
 
     def __init__(self, lines: list):
         self.lines = lines
+        self.parent_scene_name = None
 
     def parse(self):
         '''Parses given list of lines and returns JS-compatible code'''
@@ -377,8 +378,10 @@ class JSPGParser:
         '''Parses section params into type specific list of params for Entity.get() function'''
 
         # Name param
+        # --- forcing TEXT type to avoid malformation in case
+        #     action will reuse scene name from parent scene
         section_params = [
-            self.parse_param(value=params[0], param_name='name')
+            JSPGParam(params[0], ParamTypes.TEXT)
         ]
 
         if len(params) == 1:
@@ -386,7 +389,7 @@ class JSPGParser:
 
         # Type + optional portrait params
         entity_type_subparams = [p.strip() for p in params[1].split(' ', 1)]
-        entity_type = entity_type_subparams[0]
+        entity_type = entity_type_subparams[0] if entity_type_subparams[0] else None
 
         # --- Replace type shortcut with full name
         entity_type_token = TypeTokens.match(entity_type)
@@ -442,6 +445,8 @@ class JSPGParser:
 
     def parse_param(self, value, param_name: str = None) -> JSPGParam:
         '''Assign ParamType to given param, depending of it's format'''
+        if not value:
+            return None
 
         logging.debug('Parsing param: %s = %s', param_name, value)
 
@@ -452,7 +457,7 @@ class JSPGParser:
             logging.debug("Description buffer")
             lines_count = len([l for l in value if l])
             if lines_count == 1:
-                param_type = ParamTypes.TEXT
+                param_type = ParamTypes.QUOTED_TEXT
                 param_value = self.wrap_description_line(value[0])
             elif lines_count > 1:
                 param_type = ParamTypes.MULTILINE_TEXT
@@ -499,7 +504,7 @@ class JSPGParser:
         '''Wraps multiline code lines into JS arrow function syntax'''
         return [
             '()=>{',
-            *lines,
+            *('\n'.join(lines).strip('\n').split('\n')),
             '}'
         ]
 
@@ -523,81 +528,127 @@ class JSPGParser:
             return
 
         lines = [
-            '%s<br>' % (
+            (
                 self.JS_INTERPOLATION_PATTERN.sub(r'\\\1', line)
                 if self.JS_INTERPOLATION_PATTERN.search(line) else
                 line
             ) for line in buffer
         ]
 
-        logging.debug('Lines unchanged?: %s', lines == buffer)
-        lines[0] = '%s%s' % ('`' if lines == buffer else '`>>> ', lines[0])
+        lines_changed = lines == buffer
+        logging.debug('Lines unchanged?: %s', lines_changed)
+        lines[0] = '%s%s' % ('`' if lines_changed else '`>>> ', lines[0])
+        lines[:] = ["%s<br>" % line for line in lines]
         lines[-1] = '%s`' % lines[-1]
 
         return lines
 
 
-# Processor functions
-def jspg_parser_processor(header: str):
-    '''Return processor to parse JSPG content'''
+# Instruction processor functions
+def jspg_parse_function(lines: list, header: str) -> list:
+    '''Converts given JSPG lines into valid JS data'''
+    return JSPGParser((header, *lines)).parse()
 
-    def parse_jspg_lines(lines: list):
-        '''Converts given JSPG lines into valid JS data'''
-        return JSPGParser((header, *lines)).parse()
+def js_fake_named_parameters_commenter(lines: list, _):
+    '''Searchs and comments fakked named params in given lines'''
+    pattern = re.compile(r'\*([a-zA-Z0-9_]+)=', re.MULTILINE)
+    replace_by = r'/*\1*/ '
+    lines[:] = [pattern.sub(replace_by, line) for line in lines]
 
-    return parse_jspg_lines
+    return lines
 
-def jspg_js_fake_named_parameters(_):
-    '''Returns processor function to remove JS faked named params'''
+def jspg_replace_function(lines: list, *replace_options):
+    '''Find and replace given pairs'''
+    for idx, line in enumerate(lines):
+        for option in replace_options:
+            find = option[0]
+            replace = option[1] if len(option) > 0 else ''
+            line = line.replace(find, replace)
+        lines[idx] = line
 
-    def process_fake_named_parameters(lines: list):
-        '''Searchs and comments fakked named params in given lines'''
-        pattern = re.compile(r'\*([a-zA-Z0-9_]+)=', re.MULTILINE)
-        replace_by = r'/*\1*/ '
-        lines[:] = [pattern.sub(replace_by, line) for line in lines]
-
-        return lines
-
-    return process_fake_named_parameters
 
 class JSPGProcessor(ProcessorInterface):
     '''Provide access to JSPG processors'''
     processors = {
-        '$js_fake_named_params': (jspg_js_fake_named_parameters, None),
-        Tokens.SCENE.value: (jspg_parser_processor, True),
-        Tokens.ACTION.value: (jspg_parser_processor, True)
+        '$js_fake_named_params': {
+            'processor': js_fake_named_parameters_commenter
+        },
+        '$replace': {
+            'processor': jspg_replace_function,
+            'separator': ':',
+            'stackable': True,
+            'min_params': 1
+        },
+        Tokens.SCENE.value: {
+            'processor': jspg_parse_function
+        },
+        Tokens.ACTION.value: {
+            'processor': jspg_parse_function
+        }
     }
 
-    @staticmethod
-    def get_definitions():
-        '''Returns list of processor directives definitions'''
-        return list(JSPGProcessor.processors.keys())
+    # instructions = []
 
-    @staticmethod
-    def get_processor(instruction: str):
-        '''Creates and returns processor function
-           according to given parameters read from instruction
-        '''
-        params = [p.strip() for p in instruction.split(Tokens.SEPARATOR.value)]
-        logging.debug("Instruction params: %s", params)
-        instruction_type_param = params[0]
+    def __init__(self):
+        self.instructions = []
 
-        for token, processor_defines in JSPGProcessor.processors.items():
-            if not instruction_type_param.startswith(token):
+    def check_for_instruction(self, line: str) -> bool:
+        line = line.strip()
+
+        for token, properties in JSPGProcessor.processors.items():
+            if not line.startswith(token):
                 continue
 
-            processor, instruction_is_parsable = processor_defines
+            processor_data = {
+                "function": properties['processor'],
+                "token": token,
+                "params": [],
+            }
 
-            # In case when file starts with JSPGScene/Action section
-            # -> return first line as a parameter for futher parsing
-            if instruction_is_parsable:
-                params = instruction
+            params = []
+            sep = properties.get('separator')
+            if sep:
+                instruction_parts = line.split(sep)
+                # Extra check for token matching
+                if instruction_parts[0].strip() != token:
+                    return False
+                params = [p.strip() for p in instruction_parts[1:]]
+            else:
+                params = [line]
 
-            logging.debug('Token: %s', token)
-            logging.debug('Param: %s', params)
-            return processor(params)
+            # Check for minimum of prarams found or all are empty
+            # if not - skip instruction
+            if not (len(params) >= properties.get('min_params', 0)) or not any(params):
+                return False
 
-        return None
+            # For stackable instructions - find existing one and update with new params
+            if properties.get('stackable'):
+                for instr in self.instructions:
+                    if instr.get('token') == '$replace':
+                        instr.get('params').append(params)
+                        return True
+
+                # If new - save params as list:
+                params = [params]
+
+            processor_data['params'] = params
+
+            self.instructions.append(processor_data)
+            return True
+
+        return False
+
+    def has_instructions(self) -> bool:
+        return len(self.instructions) > 0
+
+    def process(self, content: list) -> list:
+        '''Modify given content according to current instruction list'''
+        for processor_data in self.instructions:
+            function = processor_data.get('function')
+            params = processor_data.get('params')
+            content = function(content, *params)
+
+        return content
 
 
 def get() -> ProcessorInterface:

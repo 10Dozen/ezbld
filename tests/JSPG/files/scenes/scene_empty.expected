@@ -1,11 +1,11 @@
 [0]
 cls = JSPGScene
-name = EmptyScene
+name = EmptyScene | TEXT
 
 [1]
 cls = JSPGScene
-name = EmptyScene2
+name = EmptyScene2 | TEXT
 
 [2]
 cls = JSPGScene
-name = AnotherEmpty
+name = AnotherEmpty | TEXT

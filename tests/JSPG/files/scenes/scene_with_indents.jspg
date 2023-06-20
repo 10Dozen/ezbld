@@ -1,8 +1,8 @@
 # SceneWithIndents
 
-    *goto:    "Scene2"
+    *goto:    Scene2
 
-              *pre_exec:    Foo.Bar()
+              *pre_exec:   { Foo.Bar() }
 
 Desc line 1.
 

@@ -1,0 +1,17 @@
+[0]
+cls = JSPGAction
+name = Detailed Action | TEXT
+type = dialog_right | TEXT
+portrait = mypic.jpg | TEXT
+tag = MyTag | TEXT
+scene = CurrentScene | TEXT
+icon = {img: my_picture.jpg} | OBJECT
+condition = Foo.Bar | VARIABLE
+exec =
+    ()=>{
+    \tlet foo = bar()
+    \tfoo.update(100)
+    } | MULTILINE_FUNCTION
+goto = SceneAnother | TEXT
+
+desc = "Some line of description."

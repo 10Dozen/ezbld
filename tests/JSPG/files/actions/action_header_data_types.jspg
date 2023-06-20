@@ -1,0 +1,21 @@
+# Scene
+
+@ Action1 TEXT | dialog_left pic.jpg
+
+@ Action1 VARIABLE | dialog_left `Foo.Bar[0]`
+
+@ Action1 FUNCTION | dialog_left { return Foo.Bar() }
+
+
+@ Action2 TEXT | dialog_left pic.jpg | MyTag
+
+@ Action2 VARIABLE | dialog_left `Foo.Bar[0]` | MyTag
+
+@ Action2 FUNCTION | dialog_left { return Foo.Bar() } | MyTag
+
+
+@ Action3 TEXT | dialog_left pic.jpg |
+
+@ Action3 VARIABLE | dialog_left `Foo.Bar[0]` |
+
+@ Action3 FUNCTION | dialog_left { return Foo.Bar() } |

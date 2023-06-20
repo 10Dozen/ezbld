@@ -1,0 +1,71 @@
+[0]
+cls = JSPGScene
+name = Scene | TEXT
+
+[1]
+cls = JSPGAction
+name = Action1 TEXT | TEXT
+type = dialog_left | TEXT
+portrait = pic.jpg | TEXT
+scene = Scene | TEXT
+
+[2]
+cls = JSPGAction
+name = Action1 VARIABLE | TEXT
+type = dialog_left | TEXT
+portrait = Foo.Bar[0] | VARIABLE
+scene = Scene | TEXT
+
+[3]
+cls = JSPGAction
+name = Action1 FUNCTION | TEXT
+type = dialog_left | TEXT
+portrait = ()=>{ return Foo.Bar() } | FUNCTION
+scene = Scene | TEXT
+
+
+[4]
+cls = JSPGAction
+name = Action2 TEXT | TEXT
+type = dialog_left | TEXT
+portrait = pic.jpg | TEXT
+tag = MyTag | TEXT
+scene = Scene | TEXT
+
+[5]
+cls = JSPGAction
+name = Action2 VARIABLE | TEXT
+type = dialog_left | TEXT
+portrait = Foo.Bar[0] | VARIABLE
+tag = MyTag | TEXT
+scene = Scene | TEXT
+
+[6]
+cls = JSPGAction
+name = Action2 FUNCTION | TEXT
+type = dialog_left | TEXT
+portrait = ()=>{ return Foo.Bar() } | FUNCTION
+tag = MyTag | TEXT
+scene = Scene | TEXT
+
+
+[7]
+cls = JSPGAction
+name = Action3 TEXT | TEXT
+type = dialog_left | TEXT
+portrait = pic.jpg | TEXT
+scene = Scene | TEXT
+
+[8]
+cls = JSPGAction
+name = Action3 VARIABLE | TEXT
+type = dialog_left | TEXT
+portrait = Foo.Bar[0] | VARIABLE
+scene = Scene | TEXT
+
+[9]
+cls = JSPGAction
+name = Action3 FUNCTION | TEXT
+type = dialog_left | TEXT
+portrait = ()=>{ return Foo.Bar() } | FUNCTION
+scene = Scene | TEXT

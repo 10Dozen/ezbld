@@ -1,7 +1,7 @@
 @ Action with multiline text | scene_right | MyTag
 
 *scene: CurrentScene
-*goto: "Scene2"
+*goto: Scene2
 
 Block 1.
 Line 1.

@@ -19,24 +19,18 @@ processors = {}
 
 class ProcessorInterface:
     '''Interface for processor class'''
-    @staticmethod
-    def get_definitions():
-        '''Returns list of instruction definitions supported by processor'''
-
-    @staticmethod
-    def get_processor(instruction: str):
-        '''Creates and returns processor function
-            according to given instruction found in source file
+    def check_for_instruction(self, line: str) -> bool:
+        '''Checks given line for instruction syntax and
+           returns True if instruction found, otherwise False.
+           Processor must save supported instruction for futher use.
         '''
 
+    def has_instructions(self) -> bool:
+        '''Returns True if processor has any instruction found'''
 
-def get_processor_definitions(processor_name):
-    '''Compose list of processor instruction definitions to search in file content'''
-    return processors[processor_name].get_definitions()
+    def process(self, content: list) -> list:
+        '''Modify given content according to current instruction list'''
 
-def get_processor(processor_name, params):
-    '''Creates text processor using given params'''
-    return processors[processor_name].get_processor(params)
 
 # Utility functions
 def get_path_relative_to_app(rel_path: str) -> str:
@@ -87,10 +81,11 @@ def save_build_version(version_track_filename, version: int) -> None:
     with open(version_track_filename, 'w', encoding='utf-8') as bvf:
         bvf.write(str(version))
 
-def process_file(filename: str, processor_name: str) -> str:
-    '''Reads source file and checks for processor directives.
-       If needed - content passed to processor for modification,
+def process_file(filename: str, processor_name: str = None) -> str:
+    '''Reads source file and checks for processor instructions.
+       If needed - content is passed to processor for modification,
        otherwise returns file content
+       Each artifact may use only one processr (defined in build setting file).
 
        Parameters:
        str: filename -- filename of the source file.
@@ -100,9 +95,10 @@ def process_file(filename: str, processor_name: str) -> str:
        str: string of processed content
     '''
     content = []
-    instructions = []
+    processor = processors.get(processor_name)() if processor_name else None
+
     with open(filename, 'r', encoding='utf-8') as src_file:
-        if not processor_name or not processors.get(processor_name):
+        if not processor:
             logging.info('\tNo processor name defined or'
                   ' processor for %s not found. Copy as is.', processor_name)
             return src_file.read()
@@ -110,39 +106,25 @@ def process_file(filename: str, processor_name: str) -> str:
         # Look for processor instructions in first lines of the file.
         # If any non-empty line without instruction met
         # stop checking and consider that instuction block is over
-        defines = get_processor_definitions(processor_name)
         for line in src_file:
             if not line:
                 continue
 
             # If instruction line found - add to list
             # if line is not an instruction - stop futher search
-            if any((line.lower().startswith(define) for define in defines)):
-                instructions.append(line)
-            else:
-                content = list(src_file)
-                content.insert(0, line)
+            instruction_found = processor.check_for_instruction(line)
+            if not instruction_found:
+                content = [
+                    line,
+                    *list(src_file)
+                ]
                 break
 
-    if not instructions:
+    if not processor.has_instructions():
         logging.info('\tThere is no processor instruction found. Copy as is.')
         return ''.join(content)
 
-    # Select and apply processor by generating apropriate function
-    logging.info('\tFound %s instruction(s)', len(instructions))
-
-    processors_count = 0
-    for instruction in instructions:
-        processor = get_processor(processor_name, instruction)
-        if not processor:
-            logging.warning('\tFAILED to define processor function for instruction %s', instruction)
-        else:
-            logging.info('\t\tRunning processor %s', processor.__name__)
-            processors_count +=1
-            content = processor(content)
-
-    logging.info('\tContent was processed with %s processors', processors_count)
-
+    content = processor.process(content)
     return ''.join(content)
 
 def source_files_generator(source_dir: str, files: list): # -> Tuple[str, SourceFilesMarkup]
@@ -266,8 +248,8 @@ def build_artifact(project_path: str,
 def load_processors(processors_settings):
     '''Loads line processors from settings file'''
     for processor_name, module_name in processors_settings.items():
-        print('Loading processor [%s]...' % processor_name)
-        print('        module [%s]...' % module_name)
+        print('Loading processor [%s]' % processor_name)
+        print('           module [%s]' % module_name)
         plugin = import_module(module_name)
         plugin_processor = plugin.get()
         processors[processor_name] = plugin_processor

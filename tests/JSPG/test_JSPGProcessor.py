@@ -4,151 +4,209 @@ import pytest
 
 sys.path.append(os.getcwd())
 
-from processors.jspg import JSPGProcessor, JSPGScene, JSPGAction
+from processors.jspg import JSPGProcessor, js_fake_named_parameters_commenter, jspg_replace_function, Tokens, jspg_parse_function
 
-
-def print_comparison(expected, actual, title='Comparing'):
-    print('\n\n======== %s: ========\n<Expected>:' % title)
-    print(expected)
-    print('                   vs\n<Actual>:')
-    print(actual)
 
 class TestJSPGProcessor:
-    @pytest.mark.jspg_file(r'tests\JSPG\files\scenes\simple_scene.jspg')
-    def test_parse_simple_scene(self, jspg_content):
-        header, content = jspg_content
+    @pytest.mark.parametrize("input_line,expected", [
+        (
+            '$js_fake_named_params\n',
+            {
+                "function": js_fake_named_parameters_commenter,
+                "token": '$js_fake_named_params',
+                "params": ['$js_fake_named_params']
+            }
+        ),
+        (
+            '$replace:KEK:LOL\n',
+            {
+                "function": jspg_replace_function,
+                "token": '$replace',
+                "params": [['KEK', 'LOL']]
+            }
+        ),
+        (
+            '$replace:KEK:\n',
+            {
+                "function": jspg_replace_function,
+                "token": '$replace',
+                "params": [['KEK', '']]
+            }
+        ),
+        (
+            '$replace:KEK\n',
+            {
+                "function": jspg_replace_function,
+                "token": '$replace',
+                "params": [['KEK']]
+            }
+        ),
+        (
+            '$replace:        KEK      :    LOL\n',
+            {
+                "function": jspg_replace_function,
+                "token": '$replace',
+                "params": [['KEK', 'LOL']]
+            }
+        ),
+        (
+            "# NewScene\n",
+            {
+                "function": jspg_parse_function,
+                "token": Tokens.SCENE.value,
+                "params": ['# NewScene']
+            }
+        ),
+        (
+            "# NewScene | scene_right\n",
+            {
+                "function": jspg_parse_function,
+                "token": Tokens.SCENE.value,
+                "params": ['# NewScene | scene_right']
+            }
+        ),
+        (
+            "@ New Action\n",
+            {
+                "function": jspg_parse_function,
+                "token": Tokens.ACTION.value,
+                "params": ['@ New Action']
+            }
+        ),
+        (
+            "@ New Action | kek\n",
+            {
+                "function": jspg_parse_function,
+                "token": Tokens.ACTION.value,
+                "params": ['@ New Action | kek']
+            }
+        ),
+    ])
+    def test_processor_selection(self, input_line, expected):
+        processor = JSPGProcessor()
+        result = processor.check_for_instruction(input_line)
+        print(processor.instructions[0])
+        assert result
+        assert processor.has_instructions()
+        assert processor.instructions[0] == expected
 
-        processor = JSPGProcessor.get_processor(header)
-        assert processor
-        assert processor.__name__ == 'parse_jspg_lines'
+    @pytest.mark.parametrize("input_line", [
+        "$replace\n",
+        "$replace:\n",
+        "$replace::\n",
+        "$$replace\n",
+        "@NewScene\n",
+        "$replace_with:kek"
+    ])
+    def test_processor_selection_failed(self, input_line):
+        processor = JSPGProcessor()
+        result = processor.check_for_instruction(input_line)
+        assert not result
+        assert not processor.has_instructions()
 
-        scene_data = processor(content)
-        assert scene_data
-
-        entity = JSPGScene.get('SceneSimple')
-        entity['desc'] = [("Some simple scene without properties.", )]
-        expected_exported = JSPGScene.to_string(entity)
-
-        print_comparison(expected_exported, scene_data[0])
-        assert scene_data[0] == expected_exported
-
-    @pytest.mark.jspg_file(r'tests\JSPG\files\actions\simple_action.jspg')
-    def test_parse_simple_action(self, jspg_content):
-        header, content = jspg_content
-
-        processor = JSPGProcessor.get_processor(header)
-        assert processor
-        assert processor.__name__ == 'parse_jspg_lines'
-
-        scene_data = processor(content)
-        assert scene_data
-
-        entity = JSPGAction.get('Simple action')
-        entity['scene'] = 'SceneSimple'
-        expected_exported = JSPGAction.to_string(entity)
-
-        print_comparison(expected_exported, scene_data[0])
-        assert scene_data[0] == expected_exported
-
-    @pytest.mark.parametrize("jspg_file,expected_file", [
-        # Scene-file parsing
+    @pytest.mark.parametrize("input_lines,expected", [
         (
-            r'tests\JSPG\files\scenes\scene_and_actions.jspg',
-            r'tests\JSPG\files\scenes\scene_and_actions.expected'
+            (
+                "$replace:A:B\n",
+                "$replace:C:D\n",
+                "$replace:E:F\n"
+            ),
+            {
+                "function": jspg_replace_function,
+                "token": '$replace',
+                "params": [['A', 'B'], ['C', 'D'], ['E', 'F']]
+            }
         ),
         (
-            r'tests\JSPG\files\scenes\scene_and_actions.jspg',
-            r'tests\JSPG\files\scenes\scene_and_actions.expected'
+            (
+                "$replace:A:\n",
+                "$replace:C:\n",
+                "$replace:E\n"
+            ),
+            {
+                "function": jspg_replace_function,
+                "token": '$replace',
+                "params": [['A', ''], ['C', ''], ['E']]
+            }
         ),
         (
-            r'tests\JSPG\files\scenes\multiple_scenes.jspg',
-            r'tests\JSPG\files\scenes\multiple_scenes.expected'
-        ),
-        (
-            r'tests\JSPG\files\scenes\multiple_scenes_with_actions.jspg',
-            r'tests\JSPG\files\scenes\multiple_scenes_with_actions.expected'
-        ),
-        (
-            r'tests\JSPG\files\scenes\detailed_scene.jspg',
-            r'tests\JSPG\files\scenes\detailed_scene.expected'
-        ),
-        (
-            r'tests\JSPG\files\scenes\scene_with_multiline_blobs.jspg',
-            r'tests\JSPG\files\scenes\scene_with_multiline_blobs.expected'
-        ),
-        (
-            r'tests\JSPG\files\scenes\scene_with_multiline_params.jspg',
-            r'tests\JSPG\files\scenes\scene_with_multiline_params.expected'
-        ),
-        (
-            r'tests\JSPG\files\scenes\scene_multiline_params_on_eof.jspg',
-            r'tests\JSPG\files\scenes\scene_multiline_params_on_eof.expected'
-        ),
-        (
-            r'tests\JSPG\files\scenes\scene_params_random_order.jspg',
-            r'tests\JSPG\files\scenes\scene_params_random_order.expected'
-        ),
-        (
-            r'tests\JSPG\files\scenes\scene_with_comments.jspg',
-            r'tests\JSPG\files\scenes\scene_with_comments.expected'
-        ),
-        (
-            r'tests\JSPG\files\scenes\scene_with_unsupported_params.jspg',
-            r'tests\JSPG\files\scenes\scene_with_unsupported_params.expected'
-        ),
-        (
-            r'tests\JSPG\files\scenes\scene_with_duplicated_params.jspg',
-            r'tests\JSPG\files\scenes\scene_with_duplicated_params.expected'
-        ),
-        (
-            r'tests\JSPG\files\scenes\scene_with_indents.jspg',
-            r'tests\JSPG\files\scenes\scene_with_indents.expected'
-        ),
-        (
-            r'tests\JSPG\files\scenes\scene_empty.jspg',
-            r'tests\JSPG\files\scenes\scene_empty.expected'
-        ),
-        (
-            r'tests\JSPG\files\scenes\scene_empty_params.jspg',
-            r'tests\JSPG\files\scenes\scene_empty_params.expected'
-        ),
-        (
-            r'tests\JSPG\files\scenes\multiple_detailed_header_scenes.jspg',
-            r'tests\JSPG\files\scenes\multiple_detailed_header_scenes.expected'
-        ),
-        (
-            r'tests\JSPG\files\scenes\scene_with_detailed_actions.jspg',
-            r'tests\JSPG\files\scenes\scene_with_detailed_actions.expected'
-        ),
-        # Action-file parsing
-        (
-            r'tests\JSPG\files\actions\multiple_actions.jspg',
-            r'tests\JSPG\files\actions\multiple_actions.expected'
-        ),
-        (
-            r'tests\JSPG\files\actions\detailed_action.jspg',
-            r'tests\JSPG\files\actions\detailed_action.expected'
-        ),
-        (
-            r'tests\JSPG\files\actions\action_with_multiline_text.jspg',
-            r'tests\JSPG\files\actions\action_with_multiline_text.expected'
-        ),
-        (
-            r'tests\JSPG\files\actions\action_with_multiline_params.jspg',
-            r'tests\JSPG\files\actions\action_with_multiline_params.expected'
-        ),
-        (
-            r'tests\JSPG\files\actions\multiple_detailed_actions.jspg',
-            r'tests\JSPG\files\actions\multiple_detailed_actions.expected'
+            (
+                "$replace:A:B\n",
+                "$replace\n",
+                "$replace:\n",
+                "$replace:X:Y\n",
+                "$replace:X;Y\n"
+            ),
+            {
+                "function": jspg_replace_function,
+                "token": '$replace',
+                "params": [['A', 'B'], ['X', 'Y'], ['X;Y']]
+            }
         )
     ])
-    def test_parse_jspg(self, jspg_file, expected_file, verifiable_jspg_content_parser):
-        parsed_files = verifiable_jspg_content_parser(jspg_file, expected_file)
-        assert len(parsed_files) > 1
+    def test_replace_processor_stacking(self, input_lines, expected):
+        processor = JSPGProcessor()
+        for line in input_lines:
+            processor.check_for_instruction(line)
+            assert processor.has_instructions()
+            assert len(processor.instructions) == 1
 
-        parsed_entities, verification_entities = parsed_files
-        assert parsed_entities
-        assert verification_entities
-        for parsed, expected in zip(parsed_entities, verification_entities):
-            print_comparison(expected, parsed)
-            assert parsed == expected
+        assert processor.instructions[0] == expected
+
+    @pytest.mark.parametrize("input_lines,expected", [
+        (
+            (
+                "$js_fake_named_params\n",
+                "$replace:  A:  B\n",
+                "$replace:  C:  D\n",
+                "# NewScene\n"
+            ),
+            [
+                {
+                    "function": js_fake_named_parameters_commenter,
+                    "token": '$js_fake_named_params',
+                    "params": ['$js_fake_named_params']
+                },
+                {
+                    "function": jspg_replace_function,
+                    "token": '$replace',
+                    "params": [['A','B'], ['C','D']]
+                },
+                {
+                    "function": jspg_parse_function,
+                    "token": Tokens.SCENE.value,
+                    "params": ['# NewScene']
+                },
+            ]
+        ),
+        (
+            (
+                "$replace:  A:  B\n",
+                "$js_fake_named_params\n",
+                "$replace:  C:  D\n",
+            ),
+            [
+                {
+                    "function": jspg_replace_function,
+                    "token": '$replace',
+                    "params": [['A','B'], ['C','D']]
+                },
+                {
+                    "function": js_fake_named_parameters_commenter,
+                    "token": '$js_fake_named_params',
+                    "params": ['$js_fake_named_params']
+                },
+            ]
+        )
+    ])
+    def test_mixed_processor_selection(self, input_lines, expected):
+        processor = JSPGProcessor()
+        for line in input_lines:
+            result = processor.check_for_instruction(line)
+            assert result
+            assert processor.has_instructions()
+
+        assert processor.instructions == expected
+
+    # TODO:
+    # - Test each processor on basic data

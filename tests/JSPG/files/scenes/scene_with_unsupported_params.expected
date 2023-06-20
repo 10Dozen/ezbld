@@ -1,18 +1,18 @@
 [0]
 cls = JSPGScene
-name = SceneWithUnsupportedParams
-type = title
+name = SceneWithUnsupportedParams | TEXT
+type = title | TEXT
 desc =
-    Desc line 1.
+    "Desc line 1."
 
-    *
+    "*"
 
-    *portrait: picture.jpg
+    "*exec: { Foo.Bar() }"
 
-    **
+    "**"
 
-    Desc line 5.
+    "Desc line 5."
 
-    *Desc line 6.
+    "*Desc line 6."
 
-    **Desc line 7.
+    "**Desc line 7."

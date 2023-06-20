@@ -1,7 +1,7 @@
 @ Action with multiline params || MyTag
 
 *scene: CurrentScene
-*icon: {text: 'A', class: 'icon-button-red'}
+*icon: (text: 'A', class: 'icon-button-red')
 **goto:
     Foo.Bar()
     return Foo.GetNextScene()

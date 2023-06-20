@@ -1,11 +1,11 @@
 [0]
 cls = JSPGScene
-name = SceneWithIndents
-goto = "Scene2"
-pre_exec = Foo.Bar()
+name = SceneWithIndents | TEXT
+goto = Scene2  | TEXT
+pre_exec = ()=>{ Foo.Bar() } | FUNCTION
 desc =
-    Desc line 1.
+    "Desc line 1."
 
-    \tDesc line 2.
+    "    Desc line 2."
 
-    \t\tDesc line 3.
+    "        Desc line 3."

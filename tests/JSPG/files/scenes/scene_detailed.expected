@@ -1,0 +1,12 @@
+[0]
+cls = JSPGScene
+name = DetailedScene | TEXT
+type = dialog | TEXT
+portrait = my_character.jpg | TEXT
+pre_exec = ()=>{ MyGame.ExecutePre() } | FUNCTION
+post_exec = ()=>{ MyGame.ExecutePost() } | FUNCTION
+goto = Scene2 | TEXT
+desc =
+    "This is a scene with properties."
+
+    "It should be parsed into fully configured scene entity."

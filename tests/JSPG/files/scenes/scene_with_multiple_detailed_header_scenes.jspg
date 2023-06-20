@@ -1,0 +1,14 @@
+# Scene1 | scene
+*goto: NextScene
+
+# Scene2
+*goto: NextScene
+
+# Scene3 | title
+*goto: NextScene
+
+# Scene4 | dialog_left pic.jpg
+*goto: NextScene
+
+# Scene5 |
+*goto: NextScene
