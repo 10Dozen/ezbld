@@ -1,0 +1,21 @@
+# Scene
+
+@ Action1 | <
+
+@ Action2 | >
+
+@ Action3 | <# pic.jpg
+
+@ Action4 | #> pic.jpg
+
+@ Action5 | T
+
+@ Action6 | ST
+
+@ Action7 | C
+
+@ Action8 | HID
+
+@ Action9 | > | MyTag
+
+@ Action10 | <# pic.jpg | MyTag

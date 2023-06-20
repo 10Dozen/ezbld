@@ -1,7 +1,7 @@
 [0]
 cls = JSPGScene
-name = SceneWithEmptyParams
+name = SceneWithEmptyParams | TEXT
 desc =
-    Desc line 1.
+    "Desc line 1."
 
-    Desc line 2.
+    "Desc line 2."

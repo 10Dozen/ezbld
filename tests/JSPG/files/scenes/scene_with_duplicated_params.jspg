@@ -1,10 +1,10 @@
 # SceenWithDuplicatedParams
 
-*goto: "Scene2"
-*goto: return Scene3
+*goto: Scene2
+*goto: { return Scene3 }
 
 Some line.
 
 Some line again.
 
-*goto: "Scene1"
+*goto: Scene1

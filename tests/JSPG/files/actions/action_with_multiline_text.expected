@@ -1,17 +1,17 @@
 [0]
 cls = JSPGAction
-name = Action with multiline text
-type = scene_right
-tag = MyTag
-scene = CurrentScene
-goto = "Scene2"
+name = Action with multiline text | TEXT
+type = scene_right | TEXT
+tag = MyTag | TEXT
+scene = CurrentScene | TEXT
+goto = Scene2 | TEXT
 desc =
-    Block 1.
-    Line 1.
-    Line 2.
+    `Block 1.<br>
+    Line 1.<br>
+    Line 2.<br>`
 
-    Block 2.
-    Line ${1}.
-    Line ${2}.
+    `>>> Block 2.<br>
+    Line \${1}.<br>
+    Line \${2}.<br>`
 
-    Line ${3}
+    "`Line ${3}`"

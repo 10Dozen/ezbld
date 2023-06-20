@@ -1,0 +1,68 @@
+[0]
+cls = JSPGScene
+name = Scene | TEXT
+
+[1]
+cls = JSPGAction
+name = Action1 | TEXT
+type = scene_left | TEXT
+scene = Scene | TEXT
+
+[2]
+cls = JSPGAction
+name = Action2 | TEXT
+type = scene_right | TEXT
+scene = Scene | TEXT
+
+[3]
+cls = JSPGAction
+name = Action3 | TEXT
+type = dialog_left | TEXT
+portrait = pic.jpg | TEXT
+scene = Scene | TEXT
+
+[4]
+cls = JSPGAction
+name = Action4 | TEXT
+type = dialog_right | TEXT
+portrait = pic.jpg | TEXT
+scene = Scene | TEXT
+
+[5]
+cls = JSPGAction
+name = Action5 | TEXT
+type = title | TEXT
+scene = Scene | TEXT
+
+[6]
+cls = JSPGAction
+name = Action6 | TEXT
+type = subtitle | TEXT
+scene = Scene | TEXT
+
+[7]
+cls = JSPGAction
+name = Action7 | TEXT
+type = container | TEXT
+scene = Scene | TEXT
+
+[8]
+cls = JSPGAction
+name = Action8 | TEXT
+type = hidden | TEXT
+scene = Scene | TEXT
+
+[9]
+cls = JSPGAction
+name = Action9 | TEXT
+type = scene_right | TEXT
+tag = MyTag | TEXT
+scene = Scene | TEXT
+
+[10]
+cls = JSPGAction
+name = Action10 | TEXT
+type = dialog_left | TEXT
+portrait = pic.jpg | TEXT
+tag = MyTag | TEXT
+scene = Scene | TEXT

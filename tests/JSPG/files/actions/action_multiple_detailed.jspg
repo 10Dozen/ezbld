@@ -1,0 +1,27 @@
+@ Action 1 | dialog_right pic.jpg | MyTag
+*scene: CurrentScene
+*goto: NextScene
+
+@ Action 2
+*scene: CurrentScene
+*goto: NextScene
+
+@ Action 3 | scene_left
+*scene: CurrentScene
+*goto: NextScene
+
+@ Action 4 || MyTag2
+*scene: CurrentScene
+*goto: NextScene
+
+@ Action 5 |
+*scene: CurrentScene
+*goto: NextScene
+
+@ Action 6 | scene_left |
+*scene: CurrentScene
+*goto: NextScene
+
+@ Action 7 ||
+*scene: CurrentScene
+*goto: NextScene

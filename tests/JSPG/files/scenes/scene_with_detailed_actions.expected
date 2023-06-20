@@ -1,36 +1,44 @@
 [0]
 cls = JSPGScene
-name = CurrentScene
-desc = Description line.
+name = CurrentScene | TEXT
+desc = "Description line."
 
 [1]
 cls = JSPGAction
-name = Action 1
-scene = CurrentScene
-goto = "NextScene"
-exec = Foo.Bar()
+name = Action 1  | TEXT
+scene = CurrentScene | TEXT
+type = dialog_left | TEXT
+portrait = pic.jpg | TEXT
+tag = MyTag1 | TEXT
+goto = NextScene | TEXT
+exec = ()=>{ Foo.Bar() } | FUNCTION
 
 [2]
 cls = JSPGAction
-name = Action 2
-scene = CurrentScene
-goto = "NextScene"
-desc = Description of action.
+name = Action 2 | TEXT
+scene = CurrentScene | TEXT
+type = scene_right | TEXT
+tag = MyTag2 | TEXT
+goto = NextScene | TEXT
+desc = "Description of action."
 
 [3]
 cls = JSPGAction
-name = Action 4
-scene = CurrentScene
-goto = "NextScene"
+name = Action 3 | TEXT
+scene = CurrentScene | TEXT
+tag = MyTag3 | TEXT
+goto = NextScene  | TEXT
 condition =
+    ()=>{
     \tBar.Foo()
+    } | MULTILINE_FUNCTION
 
 [4]
 cls = JSPGAction
-name = Action 4
-scene = CurrentScene
-goto = "NextScene"
+name = Action 4 | TEXT
+scene = CurrentScene | TEXT
+type = scene_left | TEXT
 desc =
-    It's over!
+    "It's over!"
 
-    It's literraly over!
+    "It's literally over!"

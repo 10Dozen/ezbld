@@ -1,0 +1,38 @@
+[0]
+cls = JSPGScene
+name = SceneParamsAsStrings | TEXT
+goto = ValueAsString | TEXT
+pre_exec = ValueAsString | TEXT
+post_exec = ValueAsString | TEXT
+
+[1]
+cls = JSPGScene
+name = SceneParamsAsVars | TEXT
+goto = Value.As.Variable | VARIABLE
+pre_exec = Value.As.Variable | VARIABLE
+post_exec = Value.As.Variable | VARIABLE
+
+
+[2]
+cls = JSPGScene
+name = SceneParamsAsCode | TEXT
+goto = ()=>{ return Value.As.Variable } | FUNCTION
+pre_exec = ()=>{ return Value.As.Variable } | FUNCTION
+post_exec = ()=>{ return Value.As.Variable } | FUNCTION
+
+
+[3]
+cls = JSPGScene
+name = SceneParamsAsWrappedCode | TEXT
+goto =
+    ()=>{
+    \treturn Value.As.Variable
+    } | MULTILINE_FUNCTION
+pre_exec =
+    ()=>{
+    \treturn Value.As.Variable
+    } | MULTILINE_FUNCTION
+post_exec =
+    ()=>{
+    \treturn Value.As.Variable
+    } | MULTILINE_FUNCTION

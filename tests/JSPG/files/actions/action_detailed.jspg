@@ -1,0 +1,11 @@
+@ Detailed Action | dialog_right mypic.jpg | MyTag
+
+*scene: CurrentScene
+*icon: (img: my_picture.jpg)
+*condition: `Foo.Bar`
+**exec:
+    let foo = bar()
+    foo.update(100)
+*goto: SceneAnother
+
+Some line of description.

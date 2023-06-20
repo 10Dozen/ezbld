@@ -1,18 +1,19 @@
 [0]
 cls = JSPGScene
-name = SceneParamsRandomOrder
-goto = "Scene2"
-post_exec = Foo.Bar()
+name = SceneParamsRandomOrder | TEXT
+goto = Scene2  | TEXT
+post_exec = ()=>{ Foo.Bar() } | FUNCTION
 pre_exec =
+    ()=>{
     \tlet foo = bar()
     \tfoo.update(10)
-
+    } | MULTILINE_FUNCTION
 desc =
-    Text line in the beginning.
+    "Text line in the beginning."
 
-    Text line between params.
+    "Text line between params."
 
-    Final text line here.
+    "Final text line here."
 
 
 

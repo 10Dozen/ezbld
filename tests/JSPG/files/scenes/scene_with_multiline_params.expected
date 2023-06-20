@@ -1,17 +1,23 @@
 [0]
 cls = JSPGScene
-name = SceneWithMultilineParams
+name = SceneWithMultilineParams | TEXT
 pre_exec =
+    ()=>{
     \tMyGame.PreExec()
     \tif (MyGame.State() == States.OK) {
     \t    MyGame.Activate()
     \t} else {
     \t    MyGame.VerifyLoadedFile()
     \t}
+    } | MULTILINE_FUNCTION
 post_exec =
+    ()=>{
     \tMyGame.SetSceneResult(1, true)
     \tJSPG.GoTo('Scene3')
+    } | MULTILINE_FUNCTION
 goto =
+    ()=>{
     \treturn MyGame.SelectScene()
+    } | MULTILINE_FUNCTION
 
-desc = Some description line.
+desc = "Some description line."

@@ -1,16 +1,22 @@
 [0]
 cls = JSPGAction
-name = Action with multiline params
-tag = MyTag
-scene = CurrentScene
-icon = {text: 'A', class: 'icon-button-red'}
+name = Action with multiline params | TEXT
+tag = MyTag | TEXT
+scene = CurrentScene | TEXT
+icon = {text: 'A', class: 'icon-button-red'} | OBJECT
 goto =
+    ()=>{
     \tFoo.Bar()
     \treturn Foo.GetNextScene()
+    } | MULTILINE_FUNCTION
 condition =
+    ()=>{
     \tif (Foo.Bar()) return true
     \treturn Foo.CheckOtherCondition()
+    } | MULTILINE_FUNCTION
 exec =
+    ()=>{
     \tPlayer.AddXP(1000)
     \tPlayer.AddMoney(500)
     \tGUI.UpdatePlayerInfo()
+    } | MULTILINE_FUNCTION

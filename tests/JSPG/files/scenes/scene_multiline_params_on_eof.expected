@@ -1,10 +1,11 @@
 [0]
 cls = JSPGScene
-name = SceneMultilineParamsOnEOF
+name = SceneMultilineParamsOnEOF | TEXT
 post_exec =
+    ()=>{
     \tJSPG.GoTo('NormalScene')
-
+    } | MULTILINE_FUNCTION
 desc =
-    Line 1.
+    "Line 1."
 
-    Line ${Foo.Bar()}.
+    "`Line ${Foo.Bar()}.`"

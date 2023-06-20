@@ -1,0 +1,23 @@
+# SceneParamsAsStrings
+*goto: ValueAsString
+*pre_exec: ValueAsString
+*post_exec: ValueAsString
+
+# SceneParamsAsVars
+*goto: `Value.As.Variable`
+*pre_exec: `Value.As.Variable`
+*post_exec: `Value.As.Variable`
+
+# SceneParamsAsCode
+*goto: { return Value.As.Variable }
+*pre_exec: { return Value.As.Variable }
+*post_exec: { return Value.As.Variable }
+
+# SceneParamsAsWrappedCode
+**goto:
+    return Value.As.Variable
+**pre_exec:
+    return Value.As.Variable
+**post_exec:
+    return Value.As.Variable
+*

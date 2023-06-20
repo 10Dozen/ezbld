@@ -1,0 +1,42 @@
+[0]
+cls = JSPGScene
+name = SceneOne | TEXT
+desc = "Description for SceneOne."
+
+[1]
+cls = JSPGAction
+name = Action One | TEXT
+scene = SceneOne | TEXT
+desc = "Action one for SceneOne."
+
+[2]
+cls = JSPGAction
+name = Action Two | TEXT
+scene = SceneOne | TEXT
+desc = "Action two for SceneOne."
+
+[3]
+cls = JSPGAction
+name = Action Three | TEXT
+scene = SceneOne | TEXT
+
+[4]
+cls = JSPGScene
+name = AnotherScene | TEXT
+
+[5]
+cls = JSPGAction
+name = Action One | TEXT
+scene = AnotherScene | TEXT
+desc = "Action one for AnotherScene."
+
+[6]
+cls = JSPGAction
+name = Action Two | TEXT
+scene = AnotherScene | TEXT
+desc = "Action two for AnotherScene."
+
+[7]
+cls = JSPGAction
+name = Action Three | TEXT
+scene = AnotherScene | TEXT
