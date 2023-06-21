@@ -579,6 +579,8 @@ def jspg_replace_function(lines: list, *replace_options):
             line = line.replace(find, replace)
         lines[idx] = line
 
+    return lines
+
 
 class JSPGProcessor(ProcessorInterface):
     '''Provide access to JSPG processors'''
@@ -621,11 +623,12 @@ class JSPGProcessor(ProcessorInterface):
             params = []
             sep = properties.get('separator')
             if sep:
+                line = line.replace(r'\%s' % sep, '~{%s}' % ord(sep))
                 instruction_parts = line.split(sep)
                 # Extra check for token matching
                 if instruction_parts[0].strip() != token:
                     return False
-                params = [p.strip() for p in instruction_parts[1:]]
+                params = [p.strip().replace('~{%s}' % ord(sep), sep) for p in instruction_parts[1:]]
             else:
                 params = [line]
 
