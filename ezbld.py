@@ -276,7 +276,7 @@ def main(settings_file_path: str) -> int:
 
     print('Using setting file %s' % settings_file_path)
     settings = configparser.ConfigParser()
-    settings.read(settings_file_path)
+    settings.read(settings_file_path, encoding='utf-8')
 
     # Project path is either defined in Settings File
     # or Settings File directory is used
@@ -287,8 +287,8 @@ def main(settings_file_path: str) -> int:
     settings['Paths']['projectPath'] = project_path
 
     # Check for default source directory. If not set - set it to project path
-    source_dir = settings['Paths'].get('defaultSouceDir')
-    settings['Paths']['defaultSouceDir'] = (os.path.join(project_path, source_dir)
+    source_dir = settings['Paths'].get('defaultSourceDir')
+    settings['Paths']['defaultSourceDir'] = (os.path.join(project_path, source_dir)
                                             if source_dir else
                                             project_path)
 
@@ -303,7 +303,7 @@ def main(settings_file_path: str) -> int:
         return -1
 
     cfg = configparser.ConfigParser()
-    cfg.read(build_cfg_file_path)
+    cfg.read(build_cfg_file_path, encoding='utf-8')
 
     # Validation and preparation
     if not cfg.sections():

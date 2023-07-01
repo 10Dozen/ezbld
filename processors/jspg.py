@@ -505,7 +505,7 @@ class JSPGParser:
                 param_value = '{%s}' % value[1:-1]
             else:
                 param_type = ParamTypes.TEXT
-                param_value = value
+                param_value = self.escape_quotes(value)
 
         logging.debug("Creating JSPGParam: type=%s, value=%s", param_type, param_value)
         if not param_type:
@@ -530,7 +530,7 @@ class JSPGParser:
         if self.JS_INTERPOLATION_PATTERN.search(line):
             logging.debug('JS interpolation found. Going to wrap line with `.')
             line = '`%s`' % line
-        return '"%s"' % line
+        return '"%s"' % self.escape_quotes(line)
 
     def wrap_multiline_description(self, buffer):
         '''Checks for interpolation syntax inside multilple lines
@@ -555,6 +555,9 @@ class JSPGParser:
         lines[-1] = '%s`' % lines[-1]
 
         return lines
+
+    def escape_quotes(self, line):
+        return line.replace('"', r'\"')
 
 
 # Instruction processor functions
@@ -581,6 +584,16 @@ def jspg_replace_function(lines: list, *replace_options):
 
     return lines
 
+def jspg_obsidian_markdown_function(lines: list, _) -> list:
+    pattern = re.compile(r'>\s*\[!.*\]\s*')
+    for idx, line in enumerate(lines):
+        if line.startswith('>') and not line.startswith('>|'):
+            search_result = pattern.search(line)
+            lines[idx] = line.removeprefix(search_result.group(0)
+                                           if search_result
+                                           else '>')
+
+    return lines
 
 class JSPGProcessor(ProcessorInterface):
     '''Provide access to JSPG processors'''
@@ -593,6 +606,9 @@ class JSPGProcessor(ProcessorInterface):
             'separator': ':',
             'stackable': True,
             'min_params': 1
+        },
+        '#obsidian_md': {
+            'processor': jspg_obsidian_markdown_function
         },
         Tokens.SCENE.value: {
             'processor': jspg_parse_function
