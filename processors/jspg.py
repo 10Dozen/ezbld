@@ -196,6 +196,7 @@ class JSPGParser:
     def __init__(self, lines: list):
         self.lines = lines
         self.parent_scene_name = None
+        self.possible_goto = None
 
     def parse(self):
         '''Parses given list of lines and returns JS-compatible code'''
@@ -232,10 +233,18 @@ class JSPGParser:
 
         parsed_content = []
         for idx, section in enumerate(sections):
-            logging.debug('Parsing section %s: %s', idx, section)
             section_lines = self.lines[section.get('start_at'):section.get('end_at')]
+            logging.debug('Parsing section %s: %s', idx, section)
 
-            logging.debug('            there are %s line(s) in section', len(section_lines))
+            # If case actions is followed by scene - assume thath action may lead to these scenes
+            # and pick a name of the following scene. It will be applied as default for action,
+            # until '*goto' param overrides it.
+            if section['mode'] == Modes.ACTION:
+                self.possible_goto = next(
+                    (sec['params'][0] for sec in sections[idx+1:] if sec['mode'] == Modes.SCENE),
+                    None
+                )
+
             parsed_section = self.parse_section(section['mode'], section['params'], section_lines)
 
             logging.debug('[Finished]  Parsed content size is %s char(s)', len(parsed_section))
@@ -274,10 +283,13 @@ class JSPGParser:
         # Save scene name and re-use on following action parsing
         if mode == Modes.SCENE:
             self.parent_scene_name = entity['name']
-            logging.debug('Save scene name for futher user => %s', self.parent_scene_name)
+            logging.debug('Scene parsing. Save scene name for futher user => %s',
+                          self.parent_scene_name)
         else:
-            logging.debug('Setting default *scene => %s', self.parent_scene_name)
+            logging.debug('Action parsing. Setting default *scene => %s', self.parent_scene_name)
             entity['scene'] = self.parent_scene_name
+            logging.debug('Action parsing. Setting default *goto => %s', self.possible_goto)
+            entity['goto'] = self.parse_param(self.possible_goto, 'goto')
 
         desc_buffer = []
         multiline_param_name = None
