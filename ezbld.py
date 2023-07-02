@@ -107,7 +107,7 @@ def process_file(filename: str, processor_name: str = None) -> str:
         # If any non-empty line without instruction met
         # stop checking and consider that instuction block is over
         for line in src_file:
-            if not line:
+            if not line.strip():
                 continue
 
             # If instruction line found - add to list

@@ -557,7 +557,7 @@ class JSPGParser:
         return lines
 
     def escape_quotes(self, line):
-        return line.replace('"', r'\"')
+        return line.replace('"', r'\"').replace('`', r'\`')
 
 
 # Instruction processor functions
@@ -589,9 +589,12 @@ def jspg_obsidian_markdown_function(lines: list, _) -> list:
     for idx, line in enumerate(lines):
         if line.startswith('>') and not line.startswith('>|'):
             search_result = pattern.search(line)
-            lines[idx] = line.removeprefix(search_result.group(0)
-                                           if search_result
-                                           else '>')
+            if search_result:
+                trimmed_line = '@ %s' % line.removeprefix(search_result.group(0))
+            else:
+                trimmed_line = line.removeprefix('>').removeprefix('> ')
+
+            lines[idx] = trimmed_line
 
     return lines
 
@@ -671,6 +674,7 @@ class JSPGProcessor(ProcessorInterface):
         return False
 
     def has_instructions(self) -> bool:
+        logging.debug('Instructions count: %s\n%s', len(self.instructions), self.instructions)
         return len(self.instructions) > 0
 
     def process(self, content: list) -> list:
