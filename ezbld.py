@@ -4,6 +4,7 @@ import sys
 import os
 import configparser
 import argparse
+import re
 import logging
 from importlib import import_module
 from datetime import datetime
@@ -57,7 +58,6 @@ def print_progress_bar(current, limit, size=40, label='Progress', bar_char='*', 
 # Build functions
 class SourceFilesMarkup(Enum):
     '''Recognized types of entity at artifacts.ini->order section'''
-    INVALID = 0
     FILE = 1
     TEXT_INSERT = 2
 
@@ -127,20 +127,41 @@ def process_file(filename: str, processor_name: str = None) -> str:
     content = processor.process(content)
     return ''.join(content)
 
-def source_files_generator(source_dir: str, files: list): # -> Tuple[str, SourceFilesMarkup]
+def scan_sources(source_dir: str, files: list): # -> (Tuple[str, SourceFilesMarkup], List[str])
     '''Reads through given list of files and generates
        path to file and type of entry (file, inline string or invalid)
     '''
+    filelist = []
+    invalid_files = []
+    file_mask_pattern = re.compile(r'\*\.([a-zA-Z0-9]+)$')
     for filename in files:
+        # Direct text inject
         if filename.startswith(">>"):
-            yield (filename, SourceFilesMarkup.TEXT_INSERT)
+            filelist.append((filename, SourceFilesMarkup.TEXT_INSERT))
             continue
 
         filepath = os.path.join(source_dir, filename)
+
+        # Masked files (*, *.md, etc.)
+        search_result = file_mask_pattern.search(filepath)
+        extension_filter = (tuple(search_result.group(1).split('|'))
+                            if search_result else '')
+        if filepath.endswith('*') or extension_filter:
+            for entity in os.scandir(os.path.dirname(filepath)):
+                if entity.is_dir() or not entity.name.lower().endswith(extension_filter):
+                    continue
+
+                filelist.append((entity.path, SourceFilesMarkup.FILE))
+            continue
+
+        # Normal files
         if not os.path.exists(filepath):
-            yield (filepath, SourceFilesMarkup.INVALID)
+            invalid_files.append(filepath)
         else:
-            yield (filepath, SourceFilesMarkup.FILE)
+            filelist.append((filepath, SourceFilesMarkup.FILE))
+
+    return tuple(filelist), invalid_files
+
 
 def build_artifact(project_path: str,
                    settings: configparser.ConfigParser,
@@ -211,8 +232,17 @@ def build_artifact(project_path: str,
         )
 
     listed_files = [f.strip() for f in build_config['order'].splitlines() if f.strip()]
-    source_size = len(listed_files)
-    source_files = source_files_generator(source_dir, listed_files)
+    source_files, invalid_source_files = scan_sources(source_dir, listed_files)
+    if invalid_source_files:
+        for invalid_file in invalid_source_files:
+            logging.error('Missing source file: %s', invalid_file)
+
+        if fail_on_missing_files:
+            logging.critical('\nBuild failed. There are %s missing source file(s)',
+                             len(invalid_source_files))
+            return -1
+
+    source_size = len(source_files)
     with open(artifact_full_path, 'w', encoding='utf-8') as artifact:
         if header_message:
             artifact.write(header_message)
@@ -221,21 +251,13 @@ def build_artifact(project_path: str,
         for i, src_entry in enumerate(source_files):
             src_filename, src_type = src_entry
 
-            if src_type == SourceFilesMarkup.INVALID:
-                if fail_on_missing_files:
-                    logging.critical('\nBuild failed. Source file %s not exists', src_filename)
-                    return -1
-
-                logging.warning('\nWARNING: Source file %s not exists', src_filename)
-                continue
-
             if src_type == SourceFilesMarkup.TEXT_INSERT:
                 artifact.write(src_filename[3:-1] + "\n")
                 continue
 
             # Otherwise - file case
             print()
-            logging.info('\tFile %s/%s <%s>', i+1, source_size, src_filename)
+            logging.info('Entry %s/%s\n<%s>', i+1, source_size, src_filename)
             processed_content = process_file(src_filename, processor_name)
 
             artifact.write(processed_content)

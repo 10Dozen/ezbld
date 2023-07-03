@@ -25,6 +25,7 @@ class Tokens(Enum):
 
 class TypeTokens(Enum):
     '''Shortcut tokens for entity type definition'''
+    SCENE_CENTER = '^'
     SCENE_LEFT = '<'
     SCENE_RIGHT = '>'
     DIALOG_LEFT = '<#'
@@ -236,14 +237,19 @@ class JSPGParser:
             section_lines = self.lines[section.get('start_at'):section.get('end_at')]
             logging.debug('Parsing section %s: %s', idx, section)
 
-            # If case actions is followed by scene - assume thath action may lead to these scenes
-            # and pick a name of the following scene. It will be applied as default for action,
+            # If case actions is followed by scene - assume thath action may lead to it.
+            # Name of the next scene will be applied as default 'goto' for action,
             # until '*goto' param overrides it.
-            if section['mode'] == Modes.ACTION:
+            if section['mode'] == Modes.ACTION and not self.possible_goto:
                 self.possible_goto = next(
-                    (sec['params'][0] for sec in sections[idx+1:] if sec['mode'] == Modes.SCENE),
+                    (self.parse_param(sec['params'][0], 'goto')
+                     for sec in sections[idx+1:]
+                     if sec['mode'] == Modes.SCENE),
                     None
                 )
+            else:
+                # If Scene is parsed - drop possible_goto to avoid recursive links
+                self.possible_goto = None
 
             parsed_section = self.parse_section(section['mode'], section['params'], section_lines)
 
@@ -289,7 +295,7 @@ class JSPGParser:
             logging.debug('Action parsing. Setting default *scene => %s', self.parent_scene_name)
             entity['scene'] = self.parent_scene_name
             logging.debug('Action parsing. Setting default *goto => %s', self.possible_goto)
-            entity['goto'] = self.parse_param(self.possible_goto, 'goto')
+            entity['goto'] = self.possible_goto
 
         desc_buffer = []
         multiline_param_name = None
@@ -597,16 +603,27 @@ def jspg_replace_function(lines: list, *replace_options):
     return lines
 
 def jspg_obsidian_markdown_function(lines: list, _) -> list:
-    pattern = re.compile(r'>\s*\[!.*\]\s*')
+    pattern_action_md = re.compile(r'>\s*\[!.*\]\s*')
+    pattern_goto_link = re.compile(r'(\*goto:\s*)\[\[.*#(.*)\]\]')
     for idx, line in enumerate(lines):
         if line.startswith('>') and not line.startswith('>|'):
-            search_result = pattern.search(line)
-            if search_result:
-                trimmed_line = '@ %s' % line.removeprefix(search_result.group(0))
-            else:
-                trimmed_line = line.removeprefix('>').removeprefix('> ')
+            # Remove Obsidians block code '>[!...]' for marked actions
+            search_result = pattern_action_md.search(line)
+            line = ('@ %s' % line.removeprefix(search_result.group(0))
+                    if search_result else
+                    line.lstrip('> '))
 
-            lines[idx] = trimmed_line
+        if line.startswith('*') and line.endswith('*') and len(line.split(':')) > 1:
+            # Removes possible italic styling of parameter
+            line = line.rstrip('*')
+
+        if line.startswith('*goto:'):
+            # Replace link to note's header with header name
+            search_result = pattern_goto_link.search(line)
+            if search_result and search_result.group(2):
+                line = '%s%s' % (search_result.group(1), search_result.group(2))
+
+        lines[idx] = line
 
     return lines
 

@@ -16,8 +16,9 @@ Small tool for files composition.
 - [Settings file (settings.ini)](#settings)
 - [Artifacts build config (artifacts.ini)](#artifact)
 - [Processors](#processors)
-    - [JavaScript processor](#processors.js)
     - [Custom processor](#processors.custom)
+    - [JavaScript processor](#processors.js)
+    - [JSPG processor](#processors.jspg)
 
 
 Tool helps compose group of files into single file keeping given order of content. Files may also be processed by custom processor before merging.
@@ -48,11 +49,26 @@ File content:
     - `header_message` -- optional text message to be added in the very beginning of the build artifact. Placeholders `{version}` and `{timestamp}` will be replaced with actual build data using `.format()` function.
     - `order` -- ordered list of files and instructions to use as sources, each file/instuction at separate line:
         - File paths relative to source directory (`Paths.defaultSourceDir` or `source_dir`, if defined).
+        - All files in the directory or masked by extenstion (e.g. `path/to/*` or `path/to/*.js` or multiple extensions `path/to/*.txt|md`). This will not include files in nested directories!
         - Files content will be added to artifact directly or after processing, if processor instructions are given in files.
         - Lines in format `>>'Text in single quotes'` will be directly added to artifact.
 
 ## Processors <a name='processors'></a>
 File content may be modified before addition by text processor specified in the artifacts build config. To mark file as processible - add an processor instruction line in the beggining of the file and specify `processor` parameter at artifact build config with the name from `Processors` section of settings file.
+
+### Custom processors  <a name='processors.custom'></a>
+To add custom processor one need to:
+- create new `.py` file
+    - import `from ezbld import ProcessorInterface`
+    - inherit a class from `ProcessorInterface` and implement methods:
+        - `check_for_instruction(self, line: str) -> bool` - checks passed line for processor's instruction, save instruction in processor's pool and return True if valid instruction found, or False if not.
+		- `has_instructions(self) -> bool` - returns True if there is any instruction saved in the processor's internal instuctions pool.
+		- `process(self, content: list) -> list` - processes given lines according to processor's internal instructions pool.
+    - implement separate function `get() -> ProcessorInterface` which returns processor class
+
+To use custom processor:
+- add processor to settings file (`settings.ini`) to `[Processors]` section under unique name and value in format `package.modulename` (e.g. `processors\js.py` -> `processors.js`)
+- set `processor` property for artifact in artifacts build config (e.g. `artifacts.ini`)
 
 
 ### JavaScript processor <a name='processors.js'></a>
@@ -140,16 +156,77 @@ Optional, name of object that contains values
 ```
 
 
-### Custom processors  <a name='processors.custom'></a>
-To add custom processor one need to:
-- create new `.py` file
-    - import `from ezbld import ProcessorInterface`
-    - inherit a class from `ProcessorInterface` and implement methods:
-        - `check_for_instruction(self, line: str) -> bool` - checks passed line for processor's instruction, save instruction in processor's pool and return True if valid instruction found, or False if not.
-		- `has_instructions(self) -> bool` - returns True if there is any instruction saved in the processor's internal instuctions pool.
-		- `process(self, content: list) -> list` - processes given lines according to processor's internal instructions pool.
-    - implement separate function `get() -> ProcessorInterface` which returns processor class
+### JSPG processor<a href='#processors.jspg'></a>
+Converts JSPG markup files to native JS. 
 
-To use custom processor:
-- add processor to settings file (`settings.ini`) to `[Processors]` section under unique name and value in format `package.modulename` (e.g. `processors\js.py` -> `processors.js`)
-- set `processor` property for artifact in artifacts build config (e.g. `artifacts.ini`)
+##### Instructions
+- `# `
+- `@ `
+- `#obsidian_md`
+- `$js_fake_named_params`
+- `$replace`
+
+#### `# ` (Scene) instruction:
+Defines start of the JSPG Scene. Takes up to 2 parameters separated by `|`
+```
+# NameOfTheScene | Type Portrait
+```
+
+##### Param1 - Scene name
+Name of the scene
+
+##### Param2 - Scene type and portrait
+Whitespace separated type and portrait parameters. 
+
+#### `@ ` (Action) instruction:
+Defines start of the JSPG Action. Takes up to 3 parameters separated by `|`
+
+```
+# NameOfTheScene | Type Portrait | Tag
+```
+
+##### Param1 - Action name
+Name of the scene
+
+##### Action - Scene type and portrait
+Whitespace separated type and portrait parameters. 
+
+##### Param3 - Tag name
+Tag name of the action.
+
+#### `#obsidian_md` instruction:
+Marks file as created using Obsidian markdown syntax. Takes no parameters.
+
+Applies next changes to file content:
+a) removes block syntax (`>`) and converts Obsidian block's header to JSPG action section:
+```
+>[!@] Action name | Type Portrait | Tag
+>*param: value
+
+to
+@ Action name | Type Portrait | Tag
+*param: value
+```
+b) converts markdown link to section `*goto: [[Note#Section]]` in to JSPG-compatible link `*goto: Section`
+
+c) removes markdown italic wrapping in parameter-like lines (e.g. `*goto: Name*` will become `*goto: Name`)
+
+#### `$js_fake_named_params` instruction:
+Same as JS processor. Comments parameter names:
+`$h.Img(src=MyPic.jpg)` will become valid JS `$h.Img(/*src=*/MyPic.jpg`
+
+#### `$replace` instruction:
+Scans and replace given substrings using `.replace` method. Takes up to 2 parameters separated by `:`.
+```
+$replace:AAA:BBB
+$replace:    SOMETHING   : WITH ANOTHER THING
+```
+Replacement parameters will be trimmed.
+
+Several replace instructions will be stacked and applied in given order by one passthrough.
+
+##### Param1 - Target
+Target substring to replace.
+
+##### Param2 - Replacement (optional)
+Substring to insert. If not defined - target substring will be removed.
