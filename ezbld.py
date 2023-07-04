@@ -189,7 +189,7 @@ def build_artifact(project_path: str,
 
     if not os.path.exists(source_dir):
         logging.error('\n[ERROR] Source directory [%s] not exists!', source_dir)
-        return -1
+        return 1
 
     is_release = settings['General'].getboolean('release')
     fail_on_missing_files = settings['General'].getboolean('failOnMissingFiles')
@@ -202,7 +202,7 @@ def build_artifact(project_path: str,
                 )
     if not os.path.exists(target_dir):
         logging.error('\n[ERROR] Target directory [%s] not exists!', target_dir)
-        return -1
+        return 1
 
     # Adjust target directory according to artifact settings
     if build_config.get('target_dir'):
@@ -240,7 +240,7 @@ def build_artifact(project_path: str,
         if fail_on_missing_files:
             logging.critical('\nBuild failed. There are %s missing source file(s)',
                              len(invalid_source_files))
-            return -1
+            return 1
 
     source_size = len(source_files)
     with open(artifact_full_path, 'w', encoding='utf-8') as artifact:
@@ -294,7 +294,7 @@ def main(settings_file_path: str) -> int:
 
     if not os.path.exists(settings_file_path):
         print('\n [ERROR] Failed to find settings file (%s)' % settings_file_path)
-        return -1
+        return 2
 
     print('Using setting file %s' % settings_file_path)
     settings = configparser.ConfigParser()
@@ -322,7 +322,7 @@ def main(settings_file_path: str) -> int:
     build_cfg_file_path = os.path.join(project_path, settings['Files']['config'])
     if not os.path.exists(build_cfg_file_path):
         print('\n [ERROR] Failed to find build config file (%s)' % build_cfg_file_path)
-        return -1
+        return 1
 
     cfg = configparser.ConfigParser()
     cfg.read(build_cfg_file_path, encoding='utf-8')
@@ -331,7 +331,7 @@ def main(settings_file_path: str) -> int:
     if not cfg.sections():
         print('\n[ERROR] Failed to read %s file! There is no sections defined!'
               % build_cfg_file_path)
-        return -1
+        return 1
 
     version_tracker_filename = os.path.join(project_path, settings['Files']['VersionTracker'])
     version = get_last_build_version(version_tracker_filename)
@@ -355,7 +355,7 @@ def main(settings_file_path: str) -> int:
         op_result = build_artifact(project_path, settings, build_config, full_version)
         if op_result < 0:
             logging.error('\n[ERROR] Failed to build artifact. Programm stopped')
-            return -1
+            return 1
 
         print()
         print_progress_bar(idx+1, len(build_config_sections),

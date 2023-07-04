@@ -156,8 +156,8 @@ Optional, name of object that contains values
 ```
 
 
-### JSPG processor<a href='#processors.jspg'></a>
-Converts JSPG markup files to native JS. 
+### JSPG processor <a name='processors.jspg'>
+Converts JSPG markup files to native JS.
 
 ##### Instructions
 - `# `
@@ -176,7 +176,9 @@ Defines start of the JSPG Scene. Takes up to 2 parameters separated by `|`
 Name of the scene
 
 ##### Param2 - Scene type and portrait
-Whitespace separated type and portrait parameters. 
+Whitespace separated type and portrait parameters.
+
+* * *
 
 #### `@ ` (Action) instruction:
 Defines start of the JSPG Action. Takes up to 3 parameters separated by `|`
@@ -189,10 +191,12 @@ Defines start of the JSPG Action. Takes up to 3 parameters separated by `|`
 Name of the scene
 
 ##### Action - Scene type and portrait
-Whitespace separated type and portrait parameters. 
+Whitespace separated type and portrait parameters.
 
 ##### Param3 - Tag name
 Tag name of the action.
+
+* * *
 
 #### `#obsidian_md` instruction:
 Marks file as created using Obsidian markdown syntax. Takes no parameters.
@@ -209,11 +213,17 @@ to
 ```
 b) converts markdown link to section `*goto: [[Note#Section]]` in to JSPG-compatible link `*goto: Section`
 
-c) removes markdown italic wrapping in parameter-like lines (e.g. `*goto: Name*` will become `*goto: Name`)
+c) removes markdown italic wrapping in parameter-like lines (e.g. `*goto: Name*` will become `*goto: Name` )
+
+d) removes inline code style that wraps interpolation code blocks (e.g. `` `${ Foo.Bar() }` `` will become `${ Foo.Bar() }`)
+
+* * *
 
 #### `$js_fake_named_params` instruction:
 Same as JS processor. Comments parameter names:
-`$h.Img(src=MyPic.jpg)` will become valid JS `$h.Img(/*src=*/MyPic.jpg`
+`$h.Img(src=MyPic.jpg)` will become valid JS `$h.Img(/*src=*/MyPic.jpg)`
+
+* * *
 
 #### `$replace` instruction:
 Scans and replace given substrings using `.replace` method. Takes up to 2 parameters separated by `:`.

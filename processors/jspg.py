@@ -605,6 +605,7 @@ def jspg_replace_function(lines: list, *replace_options):
 def jspg_obsidian_markdown_function(lines: list, _) -> list:
     pattern_action_md = re.compile(r'>\s*\[!.*\]\s*')
     pattern_goto_link = re.compile(r'(\*goto:\s*)\[\[.*#(.*)\]\]')
+    pattern_code = re.compile(r'`(\$\{.*\})`')
     for idx, line in enumerate(lines):
         if line.startswith('>') and not line.startswith('>|'):
             # Remove Obsidians block code '>[!...]' for marked actions
@@ -621,7 +622,11 @@ def jspg_obsidian_markdown_function(lines: list, _) -> list:
             # Replace link to note's header with header name
             search_result = pattern_goto_link.search(line)
             if search_result and search_result.group(2):
-                line = '%s%s' % (search_result.group(1), search_result.group(2))
+                goto_link = search_result.group(2).split()[0]
+                line = '%s%s' % (search_result.group(1), goto_link)
+
+        # Remove code wrapping
+        line = pattern_code.sub(r'\1', line)
 
         lines[idx] = line
 
