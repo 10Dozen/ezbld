@@ -10,6 +10,7 @@ from importlib import import_module
 from datetime import datetime
 from enum import Enum
 
+APP_VERSION = '0.1.0'
 BUILD_SETTINGS = 'settings.ini'
 DEFAULT_LOG_LEVEL = logging.INFO
 LOG_TO_FILE = '{project}_{version}_{timestamp}_log.log'
@@ -397,6 +398,7 @@ def setup_logger(settings: configparser.ConfigParser, version: str):
 
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument('--version', '-v', action='version', version=APP_VERSION)
     arg_parser.add_argument('--settings_file', '-s',
         action='store',
         help='Absolute path to build settings INI file',
