@@ -551,26 +551,77 @@ class JSPGParser:
         return '"%s"' % self.escape_quotes(line)
 
     def wrap_multiline_description(self, buffer):
-        '''Checks for interpolation syntax inside multilple lines
-           and wraps whole block with `>>> ... ` to mark multiline
+        '''Wrap multiline text to `Line1<br>Line2<br>` syntax.
+           If ${ piece detected - wraps additional with `>>> Line1 \${...}<br>Line2`
+        
+           Checks for interpolation syntax inside multilple lines
+           and wraps whole block with `>>> ... `  to mark multiline
            as interpolation-required for JSPG or with `` to make it
-           native JavaScript multiline string'''
+           native JavaScript multiline string
+        
+            1) ${...} pattern -> wrap 
+            
+            Some text ${'kek'}.
+            And then bam!
+            
+            `>>> Some text \${'kek'}<br>
+            And then bam!`
+            
+            2) ${ only pattern
+            
+            Some text ${
+                'kek' + 'stuff'
+            } he wrote.
+            And then bam!
+            
+            `>>> Some text ${
+                'kek' + 'stuff'
+            } he wrote.<br/>
+            And then bam!`
+            
+            3) Neither -- just wrap with
+            
+            Some text he wrote.
+            And then bam!
+            
+            `Some text he wrote.<br>
+            And then bam!`
+        '''
         if not buffer:
             return
 
-        lines = [
-            (
-                self.JS_INTERPOLATION_PATTERN.sub(r'\\\1', line)
-                if self.JS_INTERPOLATION_PATTERN.search(line) else
-                line
-            ) for line in buffer
-        ]
+        lines = list(buffer)
+        n = len(lines)
+        first_dollar_brace = None
+        last_closing_brace = None
 
-        lines_changed = lines == buffer
-        logging.debug('Lines unchanged?: %s', lines_changed)
-        lines[0] = '%s%s' % ('`' if lines_changed else '`>>> ', lines[0])
-        lines[:] = ["%s<br>" % line for line in lines]
-        lines[-1] = '%s`' % lines[-1]
+        for i, line in enumerate(lines):
+            if first_dollar_brace is None and '${' in line:
+                first_dollar_brace = i
+            if '}' in line:
+                last_closing_brace = i
+
+        has_interpolation = first_dollar_brace is not None
+        if not has_interpolation:
+            lines[0] = '`' + lines[0]
+            for i in range(n - 1):
+                lines[i] += '<br>'
+            lines[-1] += '`'
+            return lines
+
+        # Handle interpolation
+        for i in range(n):
+            lines[i] = lines[i].replace('${', '\${').replace('`', '\`')
+            if i >= n - 1:
+                continue
+
+            if i < first_dollar_brace:
+                lines[i] += '<br>'
+            elif i >= last_closing_brace:
+                lines[i] += '<br>'
+
+        lines[0] = '`>>> ' + lines[0]
+        lines[-1] += '`'
 
         return lines
 
@@ -614,9 +665,14 @@ def jspg_obsidian_markdown_function(lines: list, _) -> list:
                     if search_result else
                     line.lstrip('> '))
 
-        if line.startswith('*') and line.endswith('*') and len(line.split(':')) > 1:
+        
+        if all((line.startswith('*'), 
+              line.strip().endswith('*'),
+              len(line.split(':')) > 1)):
             # Removes possible italic styling of parameter
-            line = line.rstrip('*')
+            logging.debug('Line is double asteriks - going to remove: %s', line)
+            line = line.rstrip('\n*') + "\n"
+            logging.debug('Line is double asteriks - after removal right *: %s', line)
 
         if line.startswith('*goto:'):
             # Replace link to note's header with header name
