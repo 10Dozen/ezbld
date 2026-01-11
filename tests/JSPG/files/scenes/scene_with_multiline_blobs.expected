@@ -4,8 +4,8 @@ name =  MultilinedScene | TEXT
 desc =
     `First multiline block.<br>
     Line 1/1.<br>
-    Line 1/2.<br>`
+    Line 1/2.`
 
     `>>> Second multiline block.<br>
     Line \${2/1}.<br>
-    Line \${2/2}.<br>`
+    Line \${2/2}.`

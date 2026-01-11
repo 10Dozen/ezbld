@@ -1,0 +1,76 @@
+[0]
+cls = JSPGScene
+name =  MultilinedScene1 | TEXT
+desc =
+    `>>> Some line \${ 'interpolation' } and stuff.<br>
+    Some line 2.`
+
+[1]
+cls = JSPGScene
+name =  MultilinedScene2 | TEXT
+desc =
+    `>>> Some line \${
+    \tInvokeSomeCode()
+    }<br>
+    Some line 2.`
+
+[2]
+cls = JSPGScene
+name =  MultilinedScene3 | TEXT
+desc =
+    `>>> Some line \${
+    \tInvokeSomeCode()
+    } and some text here.<br>
+    Some line 2.`
+
+[4]
+cls = JSPGScene
+name =  MultilinedScene4 | TEXT
+desc =
+    `>>> Some line \${
+    \t(()=>{return 'keklol'})()
+    } and some text here.<br>
+    Some line 2.`
+
+[5]
+cls = JSPGScene
+name =  MultilinedScene5 | TEXT
+desc =
+    `>>> Some line \${
+    \t(()=>{return 'keklol'})()
+    \t(()=>{return 'keklol'})()
+    }`
+
+[6]
+cls = JSPGScene
+name =  MultilinedScene6 | TEXT
+desc =
+    `>>> Some line \${'val'} and \${'val2'}.<br>
+    Other text.`
+
+[7]
+cls = JSPGScene
+name =  MultilinedScene7 | TEXT
+desc =
+    `>>> Some line \${'val'} and \${'val2' +
+    \t'val3' +
+    \t'val4' }<br>
+    Other text.`
+
+[8]
+cls = JSPGScene
+name =  MultilinedScene8 | TEXT
+desc =
+    `>>> Some line \${'val'} and \${'val2' +
+    \t'val3' +
+    \t'val4'
+    } other text.<br>
+    Other text.`
+
+[9]
+cls = JSPGScene
+name =  MultilinedScene9 | TEXT
+desc =
+    `>>> Some line.<br>
+    Some line \${test1}.<br>
+    Some line \${test2}.`

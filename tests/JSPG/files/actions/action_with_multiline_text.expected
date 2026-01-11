@@ -8,10 +8,10 @@ goto = Scene2 | TEXT
 desc =
     `Block 1.<br>
     Line 1.<br>
-    Line 2.<br>`
+    Line 2.`
 
     `>>> Block 2.<br>
     Line \${1}.<br>
-    Line \${2}.<br>`
+    Line \${2}.`
 
     "`Line ${3}`"
