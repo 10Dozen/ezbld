@@ -7,18 +7,21 @@ desc = "Description for SceneOne."
 cls = JSPGAction
 name = Action One | TEXT
 scene = SceneOne | TEXT
+goto = AnotherScene | TEXT
 desc = "Action one for SceneOne."
 
 [2]
 cls = JSPGAction
 name = Action Two | TEXT
 scene = SceneOne | TEXT
+goto = AnotherScene | TEXT
 desc = "Action two for SceneOne."
 
 [3]
 cls = JSPGAction
 name = Action Three | TEXT
 scene = SceneOne | TEXT
+goto = AnotherScene | TEXT
 
 [4]
 cls = JSPGScene

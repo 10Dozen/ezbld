@@ -3,7 +3,7 @@ import json
 import configparser
 import pytest
 
-sys.path.append(r'F:\Workstation\QSP\AxmaProjects\v2\buildtool')
+sys.path.append(r'G:\GitRepos\ezbld')
 from processors.jspg import JSPGParser, JSPGScene, JSPGAction, JSPGParam, ParamTypes
 
 
@@ -189,6 +189,7 @@ def verifiable_jspg_content_parser():
         parsed_data = JSPGParser((header, *content)).parse()
         assert parsed_data
         parsed_jspg = [line for idx, line in enumerate(parsed_data) if idx % 2 == 0]
+        print(parsed_data)
 
         verification_entities = []
         verification_cfg = configparser.ConfigParser()
@@ -221,8 +222,12 @@ def verifiable_jspg_content_parser():
                 desc = []
                 blocks = sec['desc'].strip().split('\n\n')
                 for block in blocks:
-                    lines = block.split('\n')
-
+                    lines = [
+                        # To adjust multiline parameret - replace \t to 4 space indent
+                        line.replace(r'\t', '    ')
+                        for line in block.split('\n')
+                    ]
+                    
                     if len(lines) == 1:
                         param = ParamTypes.QUOTED_TEXT
                         line = block

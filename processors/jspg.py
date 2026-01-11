@@ -237,10 +237,10 @@ class JSPGParser:
             section_lines = self.lines[section.get('start_at'):section.get('end_at')]
             logging.debug('Parsing section %s: %s', idx, section)
 
-            # If case actions is followed by scene - assume thath action may lead to it.
-            # Name of the next scene will be applied as default 'goto' for action,
+            # In case actions are followed by scene - assume thath actions may lead to it.
+            # Name of the next scene will be applied as default 'goto' for actions,
             # until '*goto' param overrides it.
-            if section['mode'] == Modes.ACTION and not self.possible_goto:
+            if section['mode'] == Modes.ACTION:
                 self.possible_goto = next(
                     (self.parse_param(sec['params'][0], 'goto')
                      for sec in sections[idx+1:]
@@ -545,34 +545,111 @@ class JSPGParser:
         if not line:
             return
 
+        line = self.escape_quotes(line)
+
         if self.JS_INTERPOLATION_PATTERN.search(line):
             logging.debug('JS interpolation found. Going to wrap line with `.')
-            line = '`%s`' % line
-        return '"%s"' % self.escape_quotes(line)
+            return '"`%s`"' % line
+            
+        return '"%s"' % line
 
     def wrap_multiline_description(self, buffer):
-        '''Checks for interpolation syntax inside multilple lines
-           and wraps whole block with `>>> ... ` to mark multiline
+        '''Wrap multiline text to `Line1<br>Line2<br>` syntax.
+           If ${ piece detected - wraps additional with `>>> Line1 \${...}<br>Line2`
+
+           Checks for interpolation syntax inside multilple lines
+           and wraps whole block with `>>> ... `  to mark multiline
            as interpolation-required for JSPG or with `` to make it
-           native JavaScript multiline string'''
+           native JavaScript multiline string
+
+            1) ${...} pattern -> wrap 
+
+            Some text ${'kek'}.
+            And then bam!
+
+            `>>> Some text \${'kek'}<br>
+            And then bam!`
+
+            2) ${ only pattern
+
+            Some text ${
+                'kek' + 'stuff'
+            } he wrote.
+            And then bam!
+
+            `>>> Some text ${
+                'kek' + 'stuff'
+            } he wrote.<br/>
+            And then bam!`
+
+            3) Neither -- just wrap with
+
+            Some text he wrote.
+            And then bam!
+
+            `Some text he wrote.<br>
+            And then bam!`
+        '''
         if not buffer:
-            return
+            return []
 
-        lines = [
-            (
-                self.JS_INTERPOLATION_PATTERN.sub(r'\\\1', line)
-                if self.JS_INTERPOLATION_PATTERN.search(line) else
-                line
-            ) for line in buffer
-        ]
+        has_interpolation = any('${' in line for line in buffer)
+        if not has_interpolation:
+            lines = [self.escape_quotes(l) for l in buffer]
+            lines[0] = '`%s' % lines[0]
+            lines[-1] = '%s`' % lines[-1]
+            for i in range(len(lines) - 1):
+                lines[i] = '%s<br>' % lines[i] 
+            return lines
 
-        lines_changed = lines == buffer
-        logging.debug('Lines unchanged?: %s', lines_changed)
-        lines[0] = '%s%s' % ('`' if lines_changed else '`>>> ', lines[0])
-        lines[:] = ["%s<br>" % line for line in lines]
-        lines[-1] = '%s`' % lines[-1]
+        escaped = [self.escape_quotes(line).replace('${', r'\${') for line in buffer]
 
-        return lines
+        # Calculate interpolation balance of ${ and }
+        in_interp = False
+        brace_count = 0
+        is_interp_content = [False] * len(buffer)
+        interp_open_at_end = []
+
+        for i, line in enumerate(buffer):
+            j = 0
+            while j < len(line):
+                if not in_interp:
+                    if j + 1 < len(line) and line[j:j+2] == '${':
+                        in_interp = True
+                        brace_count = 0
+                        is_interp_content[i] = True
+                        j += 2
+                        continue
+                else:
+                    is_interp_content[i] = True
+                    if line[j] == '{':
+                        brace_count += 1
+                    elif line[j] == '}':
+                        brace_count -= 1
+                        if brace_count < 0:
+                            in_interp = False
+                            brace_count = 0
+                j += 1
+            interp_open_at_end.append(in_interp)
+
+        result = []
+        n = len(escaped)
+
+        for i in range(n):
+            line = escaped[i]
+            is_last = i == (n - 1)
+            interp_still_open = interp_open_at_end[i]
+
+            if i == 0:
+                line = '`' + ('>>> ' if has_interpolation else '') + line
+            if is_last:
+                line += '`'
+            elif not interp_still_open:
+                line += '<br>'
+
+            result.append(line)
+
+        return result
 
     def escape_quotes(self, line):
         return line.replace('"', r'\"').replace('`', r'\`')
@@ -614,9 +691,14 @@ def jspg_obsidian_markdown_function(lines: list, _) -> list:
                     if search_result else
                     line.lstrip('> '))
 
-        if line.startswith('*') and line.endswith('*') and len(line.split(':')) > 1:
+        
+        if all((line.startswith('*'), 
+              line.strip().endswith('*'),
+              len(line.split(':')) > 1)):
             # Removes possible italic styling of parameter
-            line = line.rstrip('*')
+            logging.debug('Line is double asteriks - going to remove: %s', line)
+            line = line.rstrip('\n*') + "\n"
+            logging.debug('Line is double asteriks - after removal right *: %s', line)
 
         if line.startswith('*goto:'):
             # Replace link to note's header with header name

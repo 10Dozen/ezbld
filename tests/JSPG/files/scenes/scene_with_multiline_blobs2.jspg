@@ -1,0 +1,58 @@
+# MultilinedScene1
+
+Some line ${ 'interpolation' } and stuff.
+Some line 2.
+
+# MultilinedScene2
+
+Some line ${
+    InvokeSomeCode()
+}
+Some line 2.
+
+# MultilinedScene3 
+
+Some line ${
+    InvokeSomeCode()
+} and some text here.
+Some line 2.
+
+# MultilinedScene4
+
+Some line ${
+    (()=>{return 'keklol'})()
+} and some text here.
+Some line 2.
+
+# MultilinedScene5
+
+Some line ${
+    (()=>{return 'keklol'})()
+    (()=>{return 'keklol'})()
+}
+
+# MultilinedScene6
+
+Some line ${'val'} and ${'val2'}.
+Other text.
+
+# MultilinedScene7 
+
+Some line ${'val'} and ${'val2' +
+    'val3' +
+    'val4' }
+Other text.
+
+# MultilinedScene8
+
+Some line ${'val'} and ${'val2' +
+    'val3' +
+    'val4'
+} other text.
+Other text.
+
+# MultilinedScene9
+
+Some line.
+Some line ${test1}.
+Some line ${test2}.
